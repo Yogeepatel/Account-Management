@@ -1,5 +1,6 @@
 package com.yogi.account.Account.serviceImpl;
 
+import com.yogi.account.Account.constants.FdEnums;
 import com.yogi.account.Account.entity.AccountExpenditure;
 import com.yogi.account.Account.entity.BankDetails;
 import com.yogi.account.Account.entity.ELSS;
@@ -99,12 +100,15 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         } else {
             try {
                 String[] texts = text.split("TRANSACTION DETAILS|TRANSACTION OVERVIEW");
-
+                List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
                 String[] accountDetails = texts[1].split("\n");
-                String accountNumber = accountDetails[1];
-                BankDetails bankDetails = new BankDetails().builder().id(bankName).accountNumber(accountNumber).address(result.get(1)
-                                .get(1)).name(result.get(2).get(1)).password("33440140700").ifscCode(result.get(7).get(1))
-                        .branch(result.get(4).get(1)).branchCode(result.get(5).get(1)).build();
+                Map<String, Integer> bankDetailsMapperTable = new BankDetails().bankDetailsMapperTable(accountDetails);
+
+                BankDetails bankDetails = new BankDetails().builder().id(bankName).accountNumber(accountDetails[bankDetailsMapperTable.get("accountNumber")] )
+                        .address(accountDetails[bankDetailsMapperTable.get("address")] )
+                        .name(accountDetails[bankDetailsMapperTable.get("name")]).branchCode(accountDetails[bankDetailsMapperTable.get("branchCode")] )
+                        .branch(accountDetails[bankDetailsMapperTable.get("branch")] ).password("33440140700").ifscCode(accountDetails[bankDetailsMapperTable.get("ifscCode")] )
+                        .build();
                 String id = bankDetailsRepositiory.save(bankDetails).getId();
                 return "Data Saved Successfully";
             } catch (Exception e) {
@@ -116,6 +120,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
     private String collectFdData(List<List<String>> text, String bankName) throws Exception {
         FDs fdObjecct = new FDs();
+        boolean newfds = false;
         List<String> fdFormat = fdObjecct.fdTableList();
         Map<String, Integer> fdMapper = fdObjecct.fdMapper(text.get(0));
         Integer id;
@@ -123,33 +128,45 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         if (exisingfds.isEmpty()) {
             id = 0;
         } else {
-            for (int fd = 1; fd < exisingfds.size(); fd++) {
-
-            }
             id = exisingfds.size();
         }
 
 
         for (int i = 1; i < text.size(); i++) {
-            if (exisingfds.get(i).getAccountNumber().equals(text.get(i).get(fdMapper.get("account Number")))) {
+            boolean flag = false;
+                 for (int fd = 0; fd < exisingfds.size(); fd++) {
+                    if (exisingfds.get(fd).getNumber().equals(text.get(i).get(fdMapper.get("number")))) {
+                        flag = true;
+                    }
+                }
+            if (flag) {
                 continue;
             }
             id = id + 1;
-            FDs fd = new FDs().builder().id(id.toString()).bankName(bankName).type(text.get(i).get(fdMapper.get(fdFormat.get(2))))
-                    .accountNumber(text.get(i).get(fdMapper.get(fdFormat.get(3)))).accountOpenDate(text.get(i).get(fdMapper.get(fdFormat.get(4))))
-                    .maturityDate(text.get(i).get(fdMapper.get(fdFormat.get(6)))).amount(text.get(i).get(fdMapper.get(fdFormat.get(7))))
-                    .Roi(text.get(i).get(fdMapper.get(fdFormat.get(5)))).build();
+            FDs fd = new FDs().builder().id(id.toString()).bankName(bankName).type(text.get(i).get(fdMapper.get(FdEnums.type.toString())))
+                    .number(text.get(i).get(fdMapper.get(FdEnums.number.toString()))).accountOpenDate(text.get(i).get(fdMapper.get(FdEnums.accountOpenDate.toString())))
+                    .maturityDate(text.get(i).get(fdMapper.get(FdEnums.maturityDate.toString()))).amount(text.get(i).get(fdMapper.get(FdEnums.amount.toString())))
+                    .Roi(text.get(i).get(fdMapper.get(FdEnums.Roi.toString()))).build();
 
             fdRepository.save(fd);
+            newfds = true;
 
         }
-        return "FD Saved Successfully";
+        if (newfds) {
+            return "FD Saved Successfully";
+        }
+        else {
+            return "No New FD ";
+        }
     }
 
     private String ExpenditureData(String text, String bankName) {
+        if (bankAccountExpenditureRepositiory.existsById("SBI")) {
+            return "Details already Saved";
+        }
         String newText = text.split("TRANSACTION OVERVIEW")[1];
         String[] texts = newText.split("\n");
-        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id("1").bankName(bankName)
+        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id(bankName)
                 .closingBalance(texts[2]).openingBalance(texts[1]).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";

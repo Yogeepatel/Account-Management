@@ -20,7 +20,7 @@ public class FDs {
     @MongoId
     private String id;
     private String type;
-    private String accountNumber;
+    private String number;
     private String amount;
     private String accountOpenDate;
     private String Roi;
@@ -32,7 +32,7 @@ public class FDs {
         fdTableFormat.add("id");
         fdTableFormat.add("bankName");
         fdTableFormat.add("type");
-        fdTableFormat.add("account Number");
+        fdTableFormat.add("number");
         fdTableFormat.add("accountOpenDate");
         fdTableFormat.add("Roi");
         fdTableFormat.add("maturityDate");

@@ -13,7 +13,6 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 public class AccountExpenditure {
     @MongoId
     private String id;
-    private String bankName;
     private String openingBalance;
     private String closingBalance;
 }

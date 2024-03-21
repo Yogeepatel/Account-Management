@@ -39,12 +39,12 @@ public class BankDetails {
         return fdTableFormat;
     }
 
-    public Map<String, Integer> bankMapperTable(List<String> text) {
+    public Map<String, Integer> bankDetailsMapperTable(String[] text) {
         List<String> fdFormat = bankDetailsTableList();
         Map<String, Integer> map = new HashMap<>();
         for (int j = 1; j < fdFormat.size()-1; j++) {
-            for (int k = 0; k < text.size(); k++) {
-                if (text.get(k).toLowerCase().contains(fdFormat.get(j).toLowerCase())) {
+            for (int k = 0; k < text.length; k++) {
+                if (text[k].toLowerCase().contains(fdFormat.get(j).toLowerCase())) {
                     map.put(fdFormat.get(j), k);
                 }
             }
