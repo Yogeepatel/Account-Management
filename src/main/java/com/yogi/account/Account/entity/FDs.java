@@ -46,7 +46,8 @@ public class FDs {
         for (int j = 2; j < fdFormat.size(); j++) {
             for (int k = 0; k < text.size(); k++) {
                 if (text.get(k).toLowerCase().contains(fdFormat.get(j).toLowerCase())) {
-                    map.put(fdFormat.get(j), k);
+                     map.put(fdFormat.get(j), k);
+                    break;
                 }
             }
         }

@@ -5,4 +5,6 @@ public interface AccountManagementService {
     String addElssStatementData();
 
     String fetchSbiStatementData(String task) throws Exception;
+
+    String fetchUbiStatementData(String task) throws Exception;
 }
