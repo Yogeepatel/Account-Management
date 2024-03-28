@@ -1,5 +1,6 @@
 package com.yogi.account.Account.serviceImpl;
 
+import com.yogi.account.Account.constants.AccountConstants;
 import com.yogi.account.Account.constants.FdEnums;
 import com.yogi.account.Account.entity.AccountExpenditure;
 import com.yogi.account.Account.entity.BankDetails;
@@ -13,7 +14,6 @@ import com.yogi.account.Account.repository.BankDetailsRepositiory;
 import com.yogi.account.Account.repository.ELSSRepository;
 import com.yogi.account.Account.repository.FDRepository;
 import com.yogi.account.Account.service.AccountManagementService;
-import com.yogi.account.Account.utils.AccountUtils;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.Loader;
@@ -25,7 +25,10 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.ResourceUtils;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -46,6 +49,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     private FDRepository fdRepository;
     @Autowired
     private AccountExpenditureRepository bankAccountExpenditureRepositiory;
+
 
     @Override
     public String addElssStatementData() {
@@ -72,7 +76,6 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
     @Override
     public String fetchSbiStatementData(String task) throws Exception {
-        String bankName = "SBI";
         String page4Text = "";
         List<List<String>> tabledatapage4 = null;
         List<List<String>> tabledatapage3 = null;
@@ -83,7 +86,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             tabledatapage4 = tabula.pdfTableReader(document, document.getNumberOfPages());
             tabledatapage3 = tabula.pdfTableReaderWithRuling(document, document.getNumberOfPages() - 1);
             document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
-            page4Text = pdfBox.read(AccountUtils.copy(document), document.getNumberOfPages(), false);
+            page4Text = pdfBox.read(document, document.getNumberOfPages(), false);
         } catch (Exception e) {
             return ("Error Occuered while reading pdf " + e.getMessage());
         }
@@ -111,7 +114,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             tabledatapage1 = tabula.pdfTableReader(document, 1);
             tabledatapagelast = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
 
-            textLastPage = pdfBox.read(AccountUtils.copy(document), document.getNumberOfPages() - 1, true);
+            textLastPage = pdfBox.read(document, document.getNumberOfPages() - 1, true);
         } catch (Exception e) {
             return ("Error Occuered while reading pdf " + e.getMessage());
         }
@@ -129,7 +132,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
 
     private String saveBankDetailsofUBI(List<List<String>> result) {
-        if (bankDetailsRepositiory.existsById("UBI")) {
+        if (bankDetailsRepositiory.existsById(AccountConstants.UBI)) {
             return "Details already Saved";
         } else {
             try {
@@ -162,7 +165,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                     }
                 }
                 String password = "SBI.password";
-                BankDetails bankDetails = new BankDetails().builder().id("UBI").accountNumber(bankDetailsMapperTable.get("Account Number"))
+                BankDetails bankDetails = new BankDetails().builder().id(AccountConstants.SBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
                         .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
                         .name(bankDetailsMapperTable.get("name")).ifscCode(bankDetailsMapperTable.get("ifsc")).customerId(bankDetailsMapperTable.get("Customer ID"))
                         .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
@@ -177,7 +180,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     }
 
     private String saveBankDetailsofSBI(String text, List<List<String>> result) {
-        if (bankDetailsRepositiory.existsById("SBI")) {
+        if (bankDetailsRepositiory.existsById(AccountConstants.SBI)) {
             return "Details already Saved";
         } else {
             try {
@@ -214,7 +217,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 }
 
                 String password = "SBI.password";
-                BankDetails bankDetails = new BankDetails().builder().id("SBI").accountNumber(bankDetailsMapperTable.get("Account Number"))
+                BankDetails bankDetails = new BankDetails().builder().id(AccountConstants.SBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
                         .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
                         .name(bankDetailsMapperTable.get("name")).ifscCode(bankDetailsMapperTable.get("ifsc")).customerId(bankDetailsMapperTable.get("Customer ID"))
                         .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
@@ -241,10 +244,13 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             id = 0;
         } else {
             for (int i = 0; i < exisingfds.size(); i++) {
-
-                if (exisingfds.get(i).getMaturityDate().equalsIgnoreCase(LocalDate.now().toString())) {
-                    fdRepository.delete(exisingfds.get(i));
-                    exisingfds.remove(i);
+                if (exisingfds.get(i).getBankName().equals(AccountConstants.SBI)) {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+                    LocalDate date = LocalDate.parse(exisingfds.get(i).getMaturityDate(), formatter);
+                    if (date.isBefore(LocalDate.now())) {
+                        fdRepository.delete(exisingfds.get(i));
+                        exisingfds.remove(i);
+                    }
                 }
             }
             id = exisingfds.size();
@@ -262,7 +268,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 continue;
             }
             id = id + 1;
-            FDs fd = new FDs().builder().id(id.toString()).bankName("SBI").type(text.get(i).get(fdMapper.get(FdEnums.type.toString())))
+            FDs fd = new FDs().builder().id(id.toString()).bankName(AccountConstants.SBI).type(text.get(i).get(fdMapper.get(FdEnums.type.toString())))
                     .number(text.get(i).get(fdMapper.get(FdEnums.number.toString()))).accountOpenDate(text.get(i).get(fdMapper.get(FdEnums.accountOpenDate.toString())))
                     .maturityDate(text.get(i).get(fdMapper.get(FdEnums.maturityDate.toString()))).amount(text.get(i).get(fdMapper.get(FdEnums.amount.toString())))
                     .Roi(text.get(i).get(fdMapper.get(FdEnums.Roi.toString()))).build();
@@ -283,15 +289,18 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         boolean newfds = false;
         Integer id;
         List<FDs> exisingfds = fdRepository.findAll();
-
-
         if (exisingfds.isEmpty()) {
             id = 0;
         } else {
             for (int i = 0; i < exisingfds.size(); i++) {
-                if (exisingfds.get(i).getMaturityDate().equalsIgnoreCase(LocalDate.now().toString())) {
-                    fdRepository.delete(exisingfds.get(i));
-                    exisingfds.remove(i);
+                if (exisingfds.get(i).getBankName().equals(AccountConstants.UBI)) {
+
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                    LocalDate date = LocalDate.parse(exisingfds.get(i).getMaturityDate(), formatter);
+                    if (date.isBefore(LocalDate.now())) {
+                        fdRepository.delete(exisingfds.get(i));
+                        exisingfds.remove(i);
+                    }
                 }
             }
             id = exisingfds.size();
@@ -322,7 +331,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 continue;
             }
             id = id + 1;
-            FDs fd = new FDs().builder().id(id.toString()).bankName("UBI").type(data[1])
+            FDs fd = new FDs().builder().id(id.toString()).bankName(AccountConstants.UBI).type(data[1])
                     .number(data[2]).accountOpenDate(data[3])
                     .maturityDate(data[4]).amount(data[6])
                     .Roi(data[5]).build();
@@ -339,20 +348,19 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     }
 
     private String ExpenditureDataofSBI(String text) {
-        if (bankAccountExpenditureRepositiory.existsById("SBI")) {
+        if (bankAccountExpenditureRepositiory.existsById(AccountConstants.SBI)) {
             return "Details already Saved";
         }
-        System.out.println(text);
         String newText = text.split("TRANSACTION OVERVIEW")[1];
         String[] texts = newText.split("\n");
-        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id("SBI")
+        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id(AccountConstants.SBI)
                 .closingBalance(texts[2]).openingBalance(texts[1]).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";
     }
 
     private String ExpenditureDataofUBI(List<List<String>> table, String text) {
-        if (bankAccountExpenditureRepositiory.existsById("UBI")) {
+        if (bankAccountExpenditureRepositiory.existsById(AccountConstants.UBI)) {
             return "Details already Saved";
         }
         String openingBalance = "";
@@ -367,7 +375,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 closingBalance = texts[i].split(" ")[7].trim();
             }
         }
-        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id("UBI")
+        AccountExpenditure bankAccountExpenditure = new AccountExpenditure().builder().id(AccountConstants.UBI)
                 .closingBalance(closingBalance).openingBalance(openingBalance).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";
