@@ -23,18 +23,19 @@ public class BankDetails {
     private String ifscCode;
     private String branch;
     private String address;
-    private String branchCode;
     private String password;
+    private String micrCode;
+    private String customerId;
 
     public List<String> bankDetailsTableList() {
         List<String> fdTableFormat = new ArrayList<>();
-        fdTableFormat.add("id");
         fdTableFormat.add("name");
-        fdTableFormat.add("accountNumber");
-        fdTableFormat.add("ifscCode");
-        fdTableFormat.add("branch");
+        fdTableFormat.add("Account Number");
+        fdTableFormat.add("ifsc");
+        fdTableFormat.add("branch name");
         fdTableFormat.add("address");
-        fdTableFormat.add("branchCode");
+        fdTableFormat.add("micr");
+        fdTableFormat.add("Customer ID");
         fdTableFormat.add("password");
         return fdTableFormat;
     }

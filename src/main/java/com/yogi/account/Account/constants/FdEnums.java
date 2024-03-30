@@ -1,7 +1,7 @@
 package com.yogi.account.Account.constants;
 
 public enum FdEnums {
-    id("id"), type("type"), number("number"), amount("amount"), accountOpenDate("accountOpenDate"), Roi("accountOpenDate"), bankName("accountOpenDate"), maturityDate("accountOpenDate");
+    id("id"), type("type"), number("number"), amount("amount"), accountOpenDate("accountOpenDate"), Roi("Roi"), maturityDate("maturityDate");
 
 
     private final String text;
