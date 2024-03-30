@@ -4,7 +4,6 @@ import com.yogi.account.Account.constants.AccountConstants;
 import com.yogi.account.Account.constants.FdEnums;
 import com.yogi.account.Account.entity.AccountExpenditure;
 import com.yogi.account.Account.entity.BankDetails;
-import com.yogi.account.Account.entity.ELSS;
 import com.yogi.account.Account.entity.FDs;
 import com.yogi.account.Account.pdfManipulation.PdfBox;
 import com.yogi.account.Account.pdfManipulation.PdfWriter;
@@ -13,7 +12,7 @@ import com.yogi.account.Account.repository.AccountExpenditureRepository;
 import com.yogi.account.Account.repository.BankDetailsRepositiory;
 import com.yogi.account.Account.repository.ELSSRepository;
 import com.yogi.account.Account.repository.FDRepository;
-import com.yogi.account.Account.service.AccountManagementService;
+import com.yogi.account.Account.service.FetchBankDataService;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.Loader;
@@ -32,14 +31,13 @@ import java.util.Map;
 
 @Service
 @AllArgsConstructor
-public class AccountManagementServiceImpl implements AccountManagementService {
-
-    public PdfWriter pdfWriter;
-    public Tabula tabula;
-    public PdfBox pdfBox;
+public class FetchBankDataServiceImpl implements FetchBankDataService {
+    private PdfWriter pdfWriter;
+    private Tabula tabula;
+    private PdfBox pdfBox;
 
     @Autowired
-    private Environment environment;
+    public Environment environment;
 
     @Autowired
     private ELSSRepository elssRepository;
@@ -49,31 +47,6 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     private FDRepository fdRepository;
     @Autowired
     private AccountExpenditureRepository bankAccountExpenditureRepositiory;
-
-
-    @Override
-    public String addElssStatementData() {
-
-        try {
-
-            PDDocument document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/ELSS.pdf"));
-
-            List<List<String>> result = tabula.pdfPartialTableReader(document, 1);
-
-            for (int i = 1; i < result.size(); i++) {
-                ELSS elss = new ELSS().builder().Amount(result.get(i).get(4))
-                        .Units(Double.parseDouble(result.get(i).get(3))).Folio_number(result.get(i).get(2))
-                        .Name_of_fund(result.get(i).get(1)).Purchase_Date(result.get(i).get(0)).build();
-                elssRepository.save(elss);
-            }
-            return "Data Saved Successfully";
-
-        } catch (Exception e) {
-            return "Error Occuered while reading pdf " + e.getMessage();
-        }
-
-    }
-
     @Override
     public String fetchSbiStatementData(String task) throws Exception {
         String page4Text = "";
