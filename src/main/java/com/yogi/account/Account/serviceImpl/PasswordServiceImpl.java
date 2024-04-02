@@ -91,7 +91,8 @@ public class PasswordServiceImpl implements PasswordService {
 				"<br/>\n" +
 				"<br/>\n" +
 				"<p style=\"text-align:center\"><strong>If You have not logged in, secure your data with below link </strong></p>\n" +
-				"<p style=\"color:blue;text-decoration:none;text-align:center\"><a href=\"",environment.getProperty("url"),"\">INVALID LOGIN</a></p>\n" +
+				"<p style=\"color:blue;text-decoration:none;text-align:center\"><a href=\"",environment.getProperty("destruct.url" +
+				""),"\">INVALID LOGIN</a></p>\n" +
 				"</body>\n" +
 				"</html>\n");
 		Map<String,String> bodyTextMap = Map.of("bodyText",bodyText,"contentType","text/html");
