@@ -28,16 +28,16 @@ public class BankDetails {
     private String customerId;
 
     public List<String> bankDetailsTableList() {
-        List<String> fdTableFormat = new ArrayList<>();
-        fdTableFormat.add("name");
-        fdTableFormat.add("Account Number");
-        fdTableFormat.add("ifsc");
-        fdTableFormat.add("branch name");
-        fdTableFormat.add("address");
-        fdTableFormat.add("micr");
-        fdTableFormat.add("Customer ID");
-        fdTableFormat.add("password");
-        return fdTableFormat;
+        List<String> bankDetailsTableFormat = new ArrayList<>();
+        bankDetailsTableFormat.add("name");
+        bankDetailsTableFormat.add("Account Number");
+        bankDetailsTableFormat.add("ifsc");
+        bankDetailsTableFormat.add("branch name");
+        bankDetailsTableFormat.add("address");
+        bankDetailsTableFormat.add("micr");
+        bankDetailsTableFormat.add("Customer ID");
+        bankDetailsTableFormat.add("password");
+        return bankDetailsTableFormat;
     }
 
     public Map<String, Integer> bankDetailsMapperTable(String[] text) {

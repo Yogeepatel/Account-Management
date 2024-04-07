@@ -1,5 +1,6 @@
 package com.yogi.account.Account.pdfManipulation;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.Map;
 
 import static org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.*;
 
@@ -47,7 +49,7 @@ public class PdfWriter {
 	}
 	
 	public static void drawrows(PDPageContentStream contentStream, float xStart, float yStart, float offsetx, float offsety, float tableWidth,
-                               float height, float width, float[] rowHeight, int numberOfRows, boolean isHeader, String[][] text, String color, int fontsize) throws IOException {
+	                            float height, float width, float[] rowHeight, int numberOfRows, boolean isHeader, String[][] text, String color, int fontsize) throws IOException {
 		float temp_y = yStart;
 		float temp_x = xStart;
 		for (int i = 0; i < numberOfRows; i++) {
@@ -58,12 +60,12 @@ public class PdfWriter {
 			contentStream.stroke();
 			if (isHeader && (text[i] != null || text[i].length != 0)) {
 				for (int j = 0; j < text[i].length; j++) {
-					headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize,"#000000", color);
+					headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, "#000000", color);
 				}
 				temp_x = temp_x + (tableWidth / 2);
 			} else if (!isHeader && (text[i] != null || text[i].length != 0)) {
 				for (int j = 0; j < text[i].length; j++) {
-					contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, color);
+					contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize);
 					temp_x = temp_x + (tableWidth / 2);
 				}
 				
@@ -72,7 +74,7 @@ public class PdfWriter {
 	}
 	
 	public static void drawrow(PDPageContentStream contentStream, float xStart, float yStart, float offsetx, float offsety, float tableWidth,
-                               float height, float width, float rowHeight, int numberOfRows, boolean isHeader, String[][] text, String color, int fontsize) throws IOException {
+	                           float height, float width, float rowHeight, int numberOfRows, boolean isHeader, String[][] text, String color, int fontsize) throws IOException {
 		float temp_y = yStart;
 		float temp_x = xStart;
 		for (int i = 0; i < numberOfRows; i++) {
@@ -82,15 +84,15 @@ public class PdfWriter {
 			
 			contentStream.lineTo(xStart + tableWidth, temp_y);
 			contentStream.stroke();
-			if (isHeader && (text[i] != null || text[i].length != 0)) {
+			if (isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
-					headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, "#000000",color);
+					headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, "#000000", color);
 					temp_x = temp_x + width;
 					System.out.println(text[i][j] + " " + temp_x);
 				}
-			} else if (!isHeader && (text[i] != null || text[i].length != 0)) {
+			} else if (!isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
-					contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, color);
+					contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize);
 					temp_x = temp_x + width;
 				}
 				
@@ -106,18 +108,17 @@ public class PdfWriter {
 			temp_y = temp_y - rowHeight;
 			temp_x = xStart;
 			contentStream.moveTo(xStart, temp_y);
-			
 			contentStream.lineTo(xStart + tableWidth, temp_y);
 			contentStream.stroke();
-			if (isHeader && (text[i] != null || text[i].length != 0)) {
+			if (isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
-					headerText(contentStream, temp_x, temp_y, width[j], offsetx, offsety, height, text[i][j], fontsize, "#000000",color);
+					headerText(contentStream, temp_x, temp_y, width[j], offsetx, offsety, height, text[i][j], fontsize, "#000000", color);
 					temp_x = temp_x + width[j];
 					System.out.println(text[i][j] + " " + temp_x);
 				}
-			} else if (!isHeader && (text[i] != null || text[i].length != 0)) {
+			} else if (!isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
-					contentText(contentStream, temp_x, temp_y, width[j], offsetx, offsety, height, text[i][j], fontsize, color);
+					contentText(contentStream, temp_x, temp_y, width[j], offsetx, offsety, height, text[i][j], fontsize);
 					temp_x = temp_x + width[j];
 				}
 				
@@ -127,22 +128,23 @@ public class PdfWriter {
 	
 	public static void drawcolumn(PDPageContentStream contentStream, float xStart, float yStart, float tableHeight, float columnWidths, float height, float width, float offsetx, float offsety, int numberOfColumns, boolean isHeader, String[] text, String color, int fontsize) throws IOException {
 		float temp_x = xStart;
+		float temp_y = yStart - tableHeight;
 		for (int i = 0; i < numberOfColumns; i++) {
 			temp_x = temp_x + columnWidths;
 			contentStream.moveTo(temp_x, yStart);
-			contentStream.lineTo(temp_x, yStart - tableHeight);
+			contentStream.lineTo(temp_x, temp_y);
 			contentStream.stroke();
 			if (isHeader && text != null) {
-				headerText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, "#000000",color);
+				headerText(contentStream, temp_x - columnWidths, temp_y, columnWidths, offsetx, offsety, height, text[i], fontsize, "#000000", color);
 			}
 			if (!isHeader && text != null) {
-				contentText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, color);
+				contentText(contentStream, temp_x - columnWidths, temp_y, columnWidths, offsetx, offsety, height, text[i], fontsize);
 				
 			}
 		}
 	}
 	
-	public static void drawcolumns(PDPageContentStream contentStream, float xStart, float yStart, float tableHeight, float columnWidths[], float height, float width, float offsetx, float offsety, int numberOfColumns, boolean isHeader, String[] text, String color, int fontsize) throws IOException {
+	public static void drawcolumns(PDPageContentStream contentStream, float xStart, float yStart, float tableHeight, float columnWidths[], int numberOfColumns) throws IOException {
 		float temp_x = xStart;
 		for (int i = 0; i < numberOfColumns; i++) {
 			int value = i + 1;
@@ -150,12 +152,48 @@ public class PdfWriter {
 			contentStream.moveTo(temp_x, yStart);
 			contentStream.lineTo(temp_x, yStart - tableHeight);
 			contentStream.stroke();
-			if (isHeader && text != null) {
-				headerText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, "#000000",color);
+//			if (isHeader && text != null) {
+//				headerText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, "#000000",color);
+//			}
+//			if (!isHeader && text != null) {
+//				contentText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, color);
+//			}
+		}
+	}
+	
+	public static void writeMappedText(PDPageContentStream contentStream, float xStart, float yStart, float rowHeight, int noOfRows, float[] columnWidth, float offsetx, float offsety, Map<String, String> text, String[] keyList, int fontsize, String color, String bgColor) {
+		System.out.println(keyList);
+		try {
+			int mapcount = 0;
+			float temp_y = yStart;
+			float temp_x = xStart;
+			for (int i = 0; i < noOfRows - 1; i++) {
+				temp_y = temp_y - rowHeight;
+				temp_x = xStart;
+				System.out.println(columnWidth.length);
+				float width;
+				for (int j = 0; j < columnWidth.length + 1; j++) {
+					if (j == columnWidth.length) {
+						width = columnWidth[j - 2];
+					} else {
+						width = columnWidth[j];
+					}
+					String key = keyList[mapcount];
+					
+					if (j % 2 == 0) {
+						System.out.println("printed");
+						headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, rowHeight, key, fontsize, color, bgColor);
+					} else {
+						mapcount = mapcount + 1;
+						System.out.println(text.get(key) + key);
+						contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, rowHeight, text.get(key), fontsize);
+						System.out.println("printed");
+					}
+					temp_x = temp_x + width;
+				}
 			}
-			if (!isHeader && text != null) {
-				contentText(contentStream, temp_x, yStart, width, offsetx, offsety, height, text[i], fontsize, color);
-			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -170,18 +208,17 @@ public class PdfWriter {
 		
 		
 		if (text.contains("\n")) {
-			contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety+15);
+			contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety + 15);
 			String[] texts = text.split("\n");
-			for (String s : texts){
+			for (String s : texts) {
 				contentStream.showText(s);
 				contentStream.endText();
 				contentStream.beginText();
 				contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety);
 				
-	
-		}
-		}
-		else {
+				
+			}
+		} else {
 			contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety);
 			contentStream.showText(text);
 		}
@@ -190,7 +227,7 @@ public class PdfWriter {
 		
 	}
 	
-	public static void contentText(PDPageContentStream contentStream, float xStart, float yStart, float width, float offsetx, float offsety, float height, String text, int fontSize, String color) throws IOException {
+	public static void contentText(PDPageContentStream contentStream, float xStart, float yStart, float width, float offsetx, float offsety, float height, String text, int fontSize) throws IOException {
 		
 		contentStream.beginText();
 		contentStream.setFont(new PDType1Font(TIMES_ROMAN), fontSize);
