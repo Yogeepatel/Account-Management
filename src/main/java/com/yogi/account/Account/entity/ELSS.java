@@ -14,11 +14,13 @@ public class ELSS {
 
     @MongoId
     private String id;
-    private String Purchase_Date;
-    private String Name_of_fund;
-    private String Folio_number;
-    private Double Units;
-    private String Amount;
+    private String purchase_Date;
+    private String name_of_fund;
+    private String folio_number;
+    private String isinCode;
+    private Double units;
+    private String amount;
+    
 
 
 }
