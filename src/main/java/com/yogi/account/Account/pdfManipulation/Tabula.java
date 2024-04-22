@@ -27,7 +27,6 @@ public class Tabula {
                 int horizontalRulingsSize = horizontalRulings.size();
                 List<Table> tables = sea.extract(page);
                 Table t = tables.get(0);
-                System.out.println(tables);
                 page.addRuling(new Ruling(t.getTop(), (float) horizontalRulings.get(0).getX1(), 0, t.height));
                 page.addRuling(new Ruling(t.getTop(), (float) horizontalRulings.get(0).getX2(), 0, t.height));
                 page.addRuling(new Ruling(281f, 32.769650f, 533.48035f, 0));
@@ -53,7 +52,6 @@ public class Tabula {
         List<List<String>> data  = new ArrayList<>();
 
             List<Table> tables = sea.extract(page);
-        System.out.println(tables.size());
             for (Table table : tables) {
                 List<List<RectangularTextContainer>> rows = table.getRows();
                 for (List<RectangularTextContainer> cells : rows) {
