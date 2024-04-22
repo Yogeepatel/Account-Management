@@ -22,14 +22,13 @@ import java.nio.file.Files;
 @RestController
 public class AccountController {
 	private GeneratePdfService generatePdfService;
-	private FetchMfStocksService FetchMfStocksService;
+	private FetchMfStocksService fetchMfStocksService;
 	private FetchBankDataService fetchBankDataService;
 	private PasswordService passwordService;
 	
-	/* Login endpoints */
+	
 	@GetMapping("/login")
 	public String login(@RequestBody LoginDto loginDto) {
-		System.out.println(loginDto);
 		return passwordService.login(loginDto.getUsername(), loginDto.getPassword());
 	}
 	
@@ -46,6 +45,8 @@ public class AccountController {
 	/* summary - Uploads a file*/
 	@GetMapping("/uploadpdf")
 	public String uploadpdfs(@RequestParam String filename, @RequestBody byte[] filecontent) {
+		if (StringUtils.isEmpty(filename))
+			throw new RuntimeException("Invalid File Uploaded");
 		try (FileOutputStream fileOutputStream = new FileOutputStream("src/main/resources/UplodedFiles" + filename)) {
 			fileOutputStream.write(filecontent);
 			
@@ -80,17 +81,28 @@ public class AccountController {
 				.body(bytes);
 	}
 	
-	/* Endpoint for saving elss data*/
-	@GetMapping("/elss")
-	public String elss() throws Exception {
-		return FetchMfStocksService.addElssStatementData();
-	}
 	
 	/* Endpoint for saving bank details and monthly expenditure and FDs*/
-	@GetMapping("/addDetails")
-	public String addStatementDetails(@RequestParam String task) throws Exception {
-		String responseSbiService = fetchBankDataService.fetchSbiStatementData(task);
-		String responseUbiService = fetchBankDataService.fetchSbiStatementData(task);
-		return responseSbiService + "\n " + responseUbiService;
+	@GetMapping("/updatebankdetails")
+	public String addStatementDetails(@RequestParam String task)   {
+		fetchBankDataService.fetchSbiStatementData();fetchBankDataService.fetchUbiStatementData();
+		return StringUtils.join(
+		fetchBankDataService.collectFdDataofUBI(),
+		fetchBankDataService.collectFdDataofSBI(),
+		fetchBankDataService.ExpenditureDataofSBI(),
+		fetchBankDataService.ExpenditureDataofUBI(),
+		fetchBankDataService.saveBankDetailsofSBI(),
+		fetchBankDataService.saveBankDetailsofUBI());
+	}
+	
+	@GetMapping("/updateStocksDetails")
+	public String addMfandStocksDetails(@RequestParam String task)   {
+		fetchMfStocksService.fetchStocksAndMfTransactionStatement();
+		fetchMfStocksService.fetchStocksAndMfMetaData();
+		return StringUtils.join(
+				fetchMfStocksService.saveStocks(),
+				fetchMfStocksService.saveSipandMf(),
+				fetchMfStocksService.saveAccountDetails(),
+				fetchMfStocksService.addElssStatementData());
 	}
 }

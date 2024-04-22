@@ -17,7 +17,6 @@ public class ELSS {
     private String purchase_Date;
     private String name_of_fund;
     private String folio_number;
-    private String isinCode;
     private Double units;
     private String amount;
     

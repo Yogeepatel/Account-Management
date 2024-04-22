@@ -1,17 +1,10 @@
 package com.yogi.account.Account.serviceImpl;
 
 import com.yogi.account.Account.ExcelReader.ExcelReader;
-import com.yogi.account.Account.entity.BankDetails;
-import com.yogi.account.Account.entity.ELSS;
-import com.yogi.account.Account.entity.MutualFund;
-import com.yogi.account.Account.entity.Sip;
+import com.yogi.account.Account.entity.*;
 import com.yogi.account.Account.pdfManipulation.CustomPdfBox;
-import com.yogi.account.Account.pdfManipulation.PdfBox;
 import com.yogi.account.Account.pdfManipulation.Tabula;
-import com.yogi.account.Account.repository.BankDetailsRepositiory;
-import com.yogi.account.Account.repository.ELSSRepository;
-import com.yogi.account.Account.repository.MutualFundRepository;
-import com.yogi.account.Account.repository.SipRepository;
+import com.yogi.account.Account.repository.*;
 import com.yogi.account.Account.service.FetchMfStocksService;
 import com.yogi.account.Account.utils.AccountUtils;
 import lombok.AllArgsConstructor;
@@ -29,17 +22,18 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
+
 @Service
 @AllArgsConstructor
 public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	private Tabula tabula;
-	private PdfBox pdfBox;
 	private CustomPdfBox customPdfBox;
 	private Environment environment;
 	private SipRepository sipRepository;
 	private ELSSRepository elssRepository;
 	private MutualFundRepository mutualFundRepository;
 	private BankDetailsRepositiory bankDetailsRepositiory;
+	private StocksRepository stocksRepository;
 	
 	public static Map<String, String> accountDetails = new HashMap<>();
 	public static Map<String, Map<String, String>> sipDeatils = new LinkedHashMap<>();
@@ -51,7 +45,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		try {
 			int count = 0;
 			List<ELSS> retrievedData = elssRepository.findAll();
-			List<String> folioNos = retrievedData.stream().map(obj -> obj.getFolio_number()).toList();
+			List<String> folioNos = retrievedData.stream().map(ELSS::getFolio_number).toList();
 			if (!ObjectUtils.isEmpty(retrievedData)) {
 				count = retrievedData.size();
 			}
@@ -129,7 +123,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	public void fetchStocksAndMfTransactionStatement() {
 		PDDocument document;
 		try {
-			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/transaction-with-holding-statement_YCS402-1208160126402956 (2).pdf", environment.getProperty("zerodha.password"));
+			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/Holding transaction Statement", environment.getProperty("zerodha.password"));
 			List<String> StocksMfTransactionStatment = customPdfBox.fetchDocumentText(document, 1, 1);
 			int i = 0;
 			int index = StocksMfTransactionStatment.indexOf("TRANSACTION WITH HOLDING STATEMENT") + 1;
@@ -163,9 +157,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 			List<String> statementDataList = StocksMfTransactionStatment.subList(statementDataIndex + 2, StocksMfTransactionStatment.size()).stream().filter(val -> val.contains(":")).toList();
 			i = 0;
 			key = "";
-			String value = "";
 			Map<String, String> temp = new HashMap<>();
-			List<Map<String, String>> templist = new ArrayList<>();
 			for (String word : statementDataList) {
 				if (i == 0) {
 					String[] words = word.split(": ");
@@ -192,63 +184,116 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	
 	
 	@Override
-	public void saveSipandMf() {
+	public String saveSipandMf() {
 		try {
-			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/holdings.xlsx"));
+			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/Holdings Excel.xlsx"));
 			Map<String, List<?>> mfMetadataExel = ExcelReader.readExcel(file, 1);
 			fetchStocksAndMfMetaData();
 			fetchStocksAndMfTransactionStatement();
 			mfMetadataExel.forEach((key, value) -> {
-				if (sipDeatils.containsKey(value.get(0))) {
-					if (Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)) != 0.0) {
-						List<ELSS> elssData = elssRepository.findAll();
-						Optional<ELSS> elss = elssData.stream().filter(id -> id.getId().equalsIgnoreCase(String.valueOf(value.get(0)))).findFirst();
-						if (elss.isPresent() && StringUtils.isBlank(elss.get().getIsinCode())) {
-							elssRepository.updateIsinCode(String.valueOf(value.get(0)), elss.get().getUnits());
-						}
-					} else {
-						if (ObjectUtils.isEmpty(sipRepository.findById(String.valueOf(value.get(0))))) {
+				if (mfFromPdf.containsKey(value.get(0))&& Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)) != 0.0){
+					if ( ObjectUtils.isNotEmpty(mfFromPdf.get(value.get(0)) )&& elssRepository.existByUnits( Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))).getUnits() == Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))) {
+						ELSS elssData = elssRepository.existByUnits(Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)));
+						elssRepository.delete(elssData);
+						elssData.setId(String.valueOf(value.get(0)));
+						elssRepository.save(elssData);
+					}
+				}
+				else if (sipDeatils.containsKey(value.get(0))) {
+						if (Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Closing balance:")) - Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Opening balance:") )>0)
+							if (ObjectUtils.isEmpty(sipRepository.findById(String.valueOf(value.get(0))))) {
 							Map<String, String> sipdata = sipDeatils.get(value.get(0));
 							List<?> pdfData = mfFromPdf.get(value.get(0));
-							Sip sipEntity = Sip.builder().id(String.valueOf(value.get(0))).companyName(sipdata.get("Symbol"))
+							
+							Sip sipEntity = Sip.builder().id(String.valueOf(value.get(0))).companyName(sipdata.get("Symbol")).fundType((String) value.get(1))
 									.sipName(key).currentBalance(Double.parseDouble(String.valueOf(pdfData.get(1)))).freeBalance(Double.parseDouble(String.valueOf(pdfData.get(2))))
 									.rate(Double.parseDouble((String) pdfData.get(4))).amount(Double.parseDouble((String) pdfData.get(5))).monthlyOpeningBalance(Double.parseDouble(sipdata.get("Opening balance:")))
 									.monthlyClosingBalance(Double.parseDouble(sipdata.get("Closing balance:"))).build();
 							sipRepository.save(sipEntity);
+							try {
+								mutualFundRepository.deleteById(String.valueOf(value.get(0)));
+							}catch (Exception e){
+								throw new RuntimeException("Mutual Fund is not present");
+							}
 						}
 					}
-				} else {
-					if (ObjectUtils.isEmpty(mutualFundRepository.findById(String.valueOf(value.get(0))))) {
-						List<?> pdfData = mfFromPdf.get(value.get(0));
-						if (ObjectUtils.isNotEmpty(pdfData)) {
-							System.out.println(String.valueOf(value.get(0)));
-							MutualFund mutualFund = MutualFund.builder().id(String.valueOf(value.get(0))).companyName((String) pdfData.get(0))
-									.mutualFundName(key).currentBalance(Double.parseDouble(String.valueOf(pdfData.get(1)))).freeBalance(Double.parseDouble(String.valueOf(pdfData.get(2))))
-									.rate(Double.parseDouble((String) pdfData.get(4))).amount(Double.parseDouble((String) pdfData.get(5))).build();
-							mutualFundRepository.save(mutualFund);
+				 else {
+						if (ObjectUtils.isEmpty(mutualFundRepository.findById(String.valueOf(value.get(0)))) &&
+								ObjectUtils.isEmpty(elssRepository.findById(String.valueOf(value.get(0)))) &&
+								ObjectUtils.isEmpty(sipRepository.findById(String.valueOf(value.get(0))))) {
+							List<?> pdfData = mfFromPdf.get(value.get(0));
+							if (ObjectUtils.isNotEmpty(pdfData)) {
+								MutualFund mutualFund = MutualFund.builder().id(String.valueOf(value.get(0))).companyName((String) pdfData.get(0))
+										.mutualFundName(key).currentBalance(Double.parseDouble(String.valueOf(pdfData.get(1)))).freeBalance(Double.parseDouble(String.valueOf(pdfData.get(2))))
+										.rate(Double.parseDouble((String) pdfData.get(4))).fundType((String) value.get(1)).amount(Double.parseDouble((String) pdfData.get(5))).build();
+								mutualFundRepository.save(mutualFund);
+							}
 						}
 					}
-				}
+				
 			});
-			
+			return "All Mutual Funds and SIP details updated and saved";
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
 	@Override
-	public void saveAccountDetails() {
+	public String saveAccountDetails() {
 		fetchStocksAndMfTransactionStatement();
-		List<String> mapKeys = accountDetails.keySet().stream().toList();
-		BankDetails accountDetail = BankDetails.builder().accountNumber(accountDetails.get(mapKeys.get(5)))
-				.account_Status(accountDetails.get(accountDetails.get(4))).id("Zerodha")
-				.bo_Status(accountDetails.get(mapKeys.get(7))).pan_Number(accountDetails.get(mapKeys.get(9)))
-				.client_Id(accountDetails.get(mapKeys.get(1))).dp_Id(accountDetails.get(mapKeys.get(10)))
-				.password(accountDetails.get(mapKeys.get(9))).address(accountDetails.get(mapKeys.get(6))).build();
 		
-		System.out.println(accountDetails.get(mapKeys.get(0)));
+		List<String> mapKeys = accountDetails.keySet().stream().toList();
+		String[] addressArray = accountDetails.get(mapKeys.get(6)).split(" ");
+		String name="";
+		String address="";
+		int index=0;
+		for(String add: addressArray) {
+			if (index < 4){
+				name = StringUtils.join(name, " ", add);
+			index = index + 1;
+		}
+			else {
+				address = StringUtils.join(address," ",add);
+			}
+			
+		}
+		BankDetails accountDetail = BankDetails.builder().name(name.substring(1)).accountNumber(accountDetails.get(mapKeys.get(5)))
+				.account_Status(accountDetails.get(accountDetails.get(mapKeys.get(7)))).id("Zerodha")
+				.bo_Status(accountDetails.get(mapKeys.get(7))).pan_Number(accountDetails.get(mapKeys.get(9)))
+				.customerId(accountDetails.get(mapKeys.get(1))).dp_Id(accountDetails.get(mapKeys.get(10)))
+				.password(accountDetails.get(mapKeys.get(9))).address(address.substring(1)).build();
+		
 		bankDetailsRepositiory.save(accountDetail);
-		System.out.println(accountDetails);
+		return "Account details updated";
 	}
 	
+	@Override
+	public String saveStocks(){
+		try {
+			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/holdings.xlsx"));
+			
+			fetchStocksAndMfMetaData();
+			fetchStocksAndMfTransactionStatement();
+			Map<String, List<?>> stocksDataFromExcel  = ExcelReader.readExcel(file, 0);
+			stocksDataFromExcel.forEach((key,value) ->{
+				if (stocksFromPdf.containsKey(value.get(0))){
+					List stockDatalist = stocksFromPdf.get(value.get(0));
+					Optional<Stocks> stocksData= stocksRepository.findById(String.valueOf(value.get(0)));
+					if (stocksData.isPresent() && stocksData.get().getCurrentBalance() != Double.parseDouble((String) stockDatalist.get(2))){
+						stocksData.get().setCurrentBalance(Double.parseDouble((String) stockDatalist.get(2)));
+						stocksRepository.updateUnits(String.valueOf(value.get(0)),Double.parseDouble((String) stockDatalist.get(1)));
+						
+					}
+					else{
+						Stocks stock = new Stocks(String.valueOf(value.get(0)),String.valueOf(stockDatalist.get(0)),key,String.valueOf(value.get(1)),Double.parseDouble((String) stockDatalist.get(1)),Double.parseDouble((String) stockDatalist.get(4)),Double.parseDouble((String) stockDatalist.get(5)));
+						stocksRepository.save(stock);
+					}
+				}
+			});
+		return "Stocks data updated and saved.";
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
 }

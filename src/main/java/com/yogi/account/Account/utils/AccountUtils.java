@@ -15,10 +15,13 @@ public class AccountUtils {
             File tempFile= File.createTempFile("tempFile",".pdf",new File("src/main/resources/modifiedPdfs"));
             String fileAbsolutePath = tempFile.getAbsolutePath();
             document.save(tempFile);
-			tempFile.deleteOnExit();
-            return Loader.loadPDF(new File(fileAbsolutePath));
+		    PDDocument documentObject = Loader.loadPDF(new File(fileAbsolutePath));
+			tempFile.delete();
+            return  documentObject;
 	    } catch (IOException e) {
 		    throw new RuntimeException(e);
 	    }
     }
+	
+	
 }

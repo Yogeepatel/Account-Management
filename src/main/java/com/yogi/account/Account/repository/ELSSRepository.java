@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ELSSRepository extends MongoRepository<ELSS, String> {
-	@Query("{'units':?1s}")
-	void updateIsinCode(String isin,Double units);
+	@Query("{'units':?0}")
+	ELSS updateUnits(Double units,String id);
+	
+	@Query("{'units':?0}")
+	public ELSS existByUnits(Double units);
 }

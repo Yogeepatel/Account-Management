@@ -1,7 +1,19 @@
 package com.yogi.account.Account.service;
 
 public interface FetchBankDataService {
-    String fetchSbiStatementData(String task) throws Exception;
+    void fetchSbiStatementData() ;
 
-    String fetchUbiStatementData(String task) throws Exception;
+    void fetchUbiStatementData() ;
+    
+    String saveBankDetailsofUBI();
+    
+    String saveBankDetailsofSBI();
+    
+    String collectFdDataofSBI() ;
+    
+    String collectFdDataofUBI() ;
+    
+    String ExpenditureDataofSBI();
+    
+    String ExpenditureDataofUBI();
 }

@@ -33,105 +33,95 @@ import java.util.Map;
 public class FetchBankDataServiceImpl implements FetchBankDataService {
     private Tabula tabula;
     private PdfBox pdfBox;
+    private BankDetailsRepositiory bankDetailsRepositiory;
+    private FDRepository fdRepository;
+    private AccountExpenditureRepository bankAccountExpenditureRepositiory;
+    
+    public static List<List<String>> firstPageTableDataUbi = null;
+    public static List<List<String>> lastPageTableDataUbi = null;
+    public static String page4TextSbi;
+    public static String page4TextSortedSbi;
+    public static List<List<String>> page4TableDataSbi;
+    public static  List<List<String>> page3TableDataSbi;
+    public static String textLastPageUbi = null;
 
     @Autowired
     public Environment environment;
-    
-    @Autowired
-    private BankDetailsRepositiory bankDetailsRepositiory;
-    @Autowired
-    private FDRepository fdRepository;
-    @Autowired
-    private AccountExpenditureRepository bankAccountExpenditureRepositiory;
+
     @Override
-    public String fetchSbiStatementData(String task) throws Exception {
-        String page4Text;
-        String page4TextSorted;
-        List<List<String>> tabledatapage4;
-        List<List<String>> tabledatapage3;
+    public void fetchSbiStatementData()  {
+       
         PDDocument document;
         PDDocument document2;
         String password = "SBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
-            tabledatapage4 = tabula.pdfTableReader(document, document.getNumberOfPages());
-            tabledatapage3 = tabula.pdfTableReaderWithRuling(document, document.getNumberOfPages() - 1);
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
-            document2 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI. Statementpdf"), environment.getProperty(password));
+            page4TableDataSbi = tabula.pdfTableReader(document, document.getNumberOfPages());
+            page3TableDataSbi = tabula.pdfTableReaderWithRuling(document, document.getNumberOfPages() - 1);
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI Statement.pdf"), environment.getProperty(password));
+            document2 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI Statement.pdf"), environment.getProperty(password));
             
-            page4Text = pdfBox.read(document, document.getNumberOfPages(), false);
-            page4TextSorted = pdfBox.read(document2, document.getNumberOfPages(), true);
+            page4TextSbi = pdfBox.read(document, document.getNumberOfPages(), false);
+            page4TextSortedSbi = pdfBox.read(document2, document.getNumberOfPages(), true);
         } catch (Exception e) {
-            return ("Error Occuered while loading pdf " + e.getMessage());
+            throw new RuntimeException  ("Error Occuered while loading pdf " + e.getMessage());
         }
-        if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(tabledatapage4) || StringUtils.isBlank(page4Text) || CollectionUtils.isEmpty(tabledatapage3)) {
-            return "Error Occuered while reading pdf " ;
+        if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(page4TableDataSbi) || StringUtils.isBlank(page4TextSbi) || CollectionUtils.isEmpty(page3TableDataSbi)) {
+            throw new RuntimeException ( "Error Occuered while reading pdf " );
         }
-
-        if (task.equals("Save Bank Details")) {
-            return saveBankDetailsofSBI(page4TextSorted, tabledatapage4);
-        }
-        String expenditureResponse = ExpenditureDataofSBI(page4Text);
-        String fdResponse = collectFdDataofSBI(tabledatapage3);
-        return expenditureResponse + "\n " + fdResponse;
+        
+       
     }
 
     @Override
-    public String fetchUbiStatementData(String task) throws Exception {
-        List<List<String>> tabledatapage1 = null;
-        List<List<String>> tabledatapagelast = null;
-        String textLastPage = null;
+    public void fetchUbiStatementData()  {
+       
+        
         PDDocument document = null;
         String password = "UBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/UBI.pdf"), environment.getProperty(password));
-            tabledatapage1 = tabula.pdfTableReader(document, 1);
-            tabledatapagelast = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/UBI Statement.pdf"), environment.getProperty(password));
+            firstPageTableDataUbi = tabula.pdfTableReader(document, 1);
+            lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
 
-            textLastPage = pdfBox.read(document, document.getNumberOfPages() - 1, true);
+            textLastPageUbi = pdfBox.read(document, document.getNumberOfPages() - 1, true);
         } catch (Exception e) {
-            return ("Error Occuered while reading pdf " + e.getMessage());
+            throw new RuntimeException ("Error Occuered while reading pdf " + e.getMessage());
         }
-        if ( ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(tabledatapage1) || StringUtils.isBlank(textLastPage) || CollectionUtils.isEmpty(tabledatapagelast)) {
-            return "Error Occuered while reading pdf ";
+        if ( ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(firstPageTableDataUbi) || StringUtils.isBlank(textLastPageUbi) || CollectionUtils.isEmpty(lastPageTableDataUbi)) {
+            throw new RuntimeException("Error Occuered while reading pdf ");
         }
-
-        if (task.equals("Save Bank Details")) {
-            return saveBankDetailsofUBI(tabledatapage1);
-        }
-        String expenditureResponse = ExpenditureDataofUBI(tabledatapagelast, textLastPage);
-        String fdResponse = collectFdDataofUBI(tabledatapagelast, textLastPage);
-        return expenditureResponse + "\n " + fdResponse;
+        
     }
-
-
-    private String saveBankDetailsofUBI(List<List<String>> result) {
+    
+    @Override
+    public String saveBankDetailsofUBI() {
         if (bankDetailsRepositiory.existsById(AccountConstants.UBI)) {
             return "Details already Saved";
         } else {
             try {
                 List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
-                result = result.subList(0, bankDetailsTableList.size() - 1);
+                lastPageTableDataUbi = lastPageTableDataUbi.subList(0, bankDetailsTableList.size() - 1);
                 Map<String, String> bankDetailsMapperTable = new HashMap<>();
                 for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
-                    for (int j = 0; j < result.size(); j++) {
-                        for (int k = 0; k < result.get(j).size()-1; k++) {
-                            if (!StringUtils.isBlank(result.get(j).get(k)) &&( result.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) ||  bankDetailsTableList.get(i).toLowerCase().trim().contains(result.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
-                               String[] spliyararay = result.get(j).get(k).split("&");
+                    for (int j = 0; j < lastPageTableDataUbi.size(); j++) {
+                        for (int k = 0; k < lastPageTableDataUbi.get(j).size()-1; k++) {
+                            if (!StringUtils.isBlank(lastPageTableDataUbi.get(j).get(k)) &&( lastPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) ||  bankDetailsTableList.get(i).toLowerCase().trim().contains(lastPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
+                               String[] spliyararay = lastPageTableDataUbi.get(j).get(k).split("&");
                                 if (spliyararay.length > 1) {
                                     if (spliyararay[0].toLowerCase().trim().equalsIgnoreCase(bankDetailsTableList.get(i).toLowerCase())) {
-                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), result.get(j + 1).get(0));
+                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), lastPageTableDataUbi.get(j + 1).get(0));
                                     }
                                     if (spliyararay[1].trim().toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
                                         String address = "";
-                                        for (int s = 2; s < result.size(); s++) {
-                                            address = StringUtils.join(address, result.get(s).get(0), " ");
+                                        for (int s = 2; s < lastPageTableDataUbi.size(); s++) {
+                                            address = StringUtils.join(address, lastPageTableDataUbi.get(s).get(0), " ");
                                         }
                                         bankDetailsMapperTable.put(bankDetailsTableList.get(i), address);
                                     }
                                 } else {
-                                    if (!StringUtils.isBlank(result.get(j).get(k + 1))){
-                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), result.get(j).get(k + 1));
+                                    if (!StringUtils.isBlank(lastPageTableDataUbi.get(j).get(k + 1))){
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), lastPageTableDataUbi.get(j).get(k + 1));
                                     }
                                 }
                             
@@ -152,24 +142,25 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             }
         }
     }
-
-    private String saveBankDetailsofSBI(String text, List<List<String>> result) {
+    
+    @Override
+    public String saveBankDetailsofSBI() {
         if (bankDetailsRepositiory.existsById(AccountConstants.SBI)) {
             return "Details already Saved";
         } else {
             try {
                 List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
-                result = result.subList(0, bankDetailsTableList.size() - 1);
-                String[] accountDetails = text.split("\n");
+                page4TableDataSbi = page4TableDataSbi.subList(0, bankDetailsTableList.size() - 1);
+                String[] accountDetails = page4TextSortedSbi.split("\n");
 
                 Map<String, String> bankDetailsMapperTable = new HashMap<>();
                 for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
-	                for (List<String> strings : result) {
+	                for (List<String> strings : page4TableDataSbi) {
 		                if (strings.get(0).toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
 			                bankDetailsMapperTable.put(bankDetailsTableList.get(i), strings.get(1));
 			                break;
 			                
-		                } else if (!StringUtils.isBlank(text)) {
+		                } else if (!StringUtils.isBlank(page4TextSortedSbi)) {
 			                for (int s = 0; s < accountDetails.length; s++) {
 				                if (accountDetails[s].contains("Customer ID") && bankDetailsTableList.get(i).equalsIgnoreCase("Customer ID")) {
 					                bankDetailsMapperTable.put(bankDetailsTableList.get(i), accountDetails[s].split(":")[1].trim());
@@ -205,12 +196,14 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         }
 
     }
-
-    private String collectFdDataofSBI(List<List<String>> text) throws Exception {
+    
+    
+    @Override
+    public String collectFdDataofSBI()  {
 
         FDs fdObject = new FDs();
         boolean newfds = false;
-        Map<String, Integer> fdMapper = fdObject.fdMapper(text.get(0));
+        Map<String, Integer> fdMapper = fdObject.fdMapper(page3TableDataSbi.get(0));
         Integer id;
         List<FDs> exisingfds = fdRepository.findAll();
         if (exisingfds.isEmpty()) {
@@ -230,10 +223,10 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         }
 
 
-        for (int i = 1; i < text.size(); i++) {
+        for (int i = 1; i < page3TableDataSbi.size(); i++) {
             boolean flag = false;
 	        for (FDs exisingfd : exisingfds) {
-		        if (exisingfd.getNumber().equals(text.get(i).get(fdMapper.get("number")))) {
+		        if (exisingfd.getNumber().equals(page3TableDataSbi.get(i).get(fdMapper.get("number")))) {
 			        flag = true;
 		        }
 	        }
@@ -242,10 +235,10 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             }
             id = id + 1;
 	        new FDs();
-	        FDs fd = FDs.builder().id(id.toString()).bankName(AccountConstants.SBI).type(text.get(i).get(fdMapper.get(FdEnums.type.toString())))
-                    .number(text.get(i).get(fdMapper.get(FdEnums.number.toString()))).accountOpenDate(text.get(i).get(fdMapper.get(FdEnums.accountOpenDate.toString())))
-                    .maturityDate(text.get(i).get(fdMapper.get(FdEnums.maturityDate.toString()))).amount(text.get(i).get(fdMapper.get(FdEnums.amount.toString())))
-                    .Roi(text.get(i).get(fdMapper.get(FdEnums.Roi.toString()))).build();
+	        FDs fd = FDs.builder().id(id.toString()).bankName(AccountConstants.SBI).type(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.type.toString())))
+                    .number(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.number.toString()))).accountOpenDate(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.accountOpenDate.toString())))
+                    .maturityDate(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.maturityDate.toString()))).amount(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.amount.toString())))
+                    .Roi(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.Roi.toString()))).build();
 
             fdRepository.save(fd);
             newfds = true;
@@ -257,8 +250,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             return "No New FD ";
         }
     }
-
-    private String collectFdDataofUBI(List<List<String>> text, String textLastPage) throws Exception {
+    
+    @Override
+    public String collectFdDataofUBI()  {
         boolean newfds = false;
         Integer id;
         List<FDs> exisingfds = fdRepository.findAll();
@@ -278,7 +272,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             }
             id = exisingfds.size();
         }
-        String[] textLastPageArray = textLastPage.split("\n");
+        String[] textLastPageArray = textLastPageUbi.split("\n");
         int j = 0;
 
         String[] textSubArray = new String[0];
@@ -319,26 +313,28 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             return "No New FD ";
         }
     }
-
-    private String ExpenditureDataofSBI(String text) {
+    
+    @Override
+    public String ExpenditureDataofSBI() {
         if (bankAccountExpenditureRepositiory.existsById(AccountConstants.SBI)) {
             return "Details already Saved";
         }
-        String newText = text.split("TRANSACTION OVERVIEW")[1];
+        String newText = page4TextSbi.split("TRANSACTION OVERVIEW")[1];
         String[] texts = newText.split("\n");
         AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.SBI)
                 .closingBalance(texts[2].split(":")[1]).openingBalance(texts[1].split(":")[1]).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";
     }
-
-    private String ExpenditureDataofUBI(List<List<String>> table, String text) {
+    
+    @Override
+    public String ExpenditureDataofUBI() {
         if (bankAccountExpenditureRepositiory.existsById(AccountConstants.UBI)) {
             return "Details already Saved";
         }
         String openingBalance = "";
         String closingBalance = "";
-        String[] texts = text.split("\n");
+        String[] texts = textLastPageUbi.split("\n");
         for (int i = 0; i < texts.length; i++) {
 
             if (texts[i].contains("Opening Balance")) {

@@ -14,5 +14,11 @@ public interface GeneratePdfService {
 	
 	void bankDetailsPdf();
 	
+	void generateStocksPdf();
+	
+	void generateSipPdf();
+	
+	void generateMfPdf();
+	
 	void destructmodePdf();
 }

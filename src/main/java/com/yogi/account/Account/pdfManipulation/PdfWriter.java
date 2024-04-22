@@ -88,7 +88,6 @@ public class PdfWriter {
 				for (int j = 0; j < text[i].length; j++) {
 					headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, height, text[i][j], fontsize, "#000000", color);
 					temp_x = temp_x + width;
-					System.out.println(text[i][j] + " " + temp_x);
 				}
 			} else if (!isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
@@ -114,7 +113,6 @@ public class PdfWriter {
 				for (int j = 0; j < text[i].length; j++) {
 					headerText(contentStream, temp_x, temp_y, width[j], offsetx, offsety, height, text[i][j], fontsize, "#000000", color);
 					temp_x = temp_x + width[j];
-					System.out.println(text[i][j] + " " + temp_x);
 				}
 			} else if (!isHeader && !ObjectUtils.isEmpty(text) && !ObjectUtils.isEmpty(text[i])) {
 				for (int j = 0; j < text[i].length; j++) {
@@ -162,7 +160,6 @@ public class PdfWriter {
 	}
 	
 	public static void writeMappedText(PDPageContentStream contentStream, float xStart, float yStart, float rowHeight, int noOfRows, float[] columnWidth, float offsetx, float offsety, Map<String, String> text, String[] keyList, int fontsize, String color, String bgColor) {
-		System.out.println(keyList);
 		try {
 			int mapcount = 0;
 			float temp_y = yStart;
@@ -170,7 +167,6 @@ public class PdfWriter {
 			for (int i = 0; i < noOfRows - 1; i++) {
 				temp_y = temp_y - rowHeight;
 				temp_x = xStart;
-				System.out.println(columnWidth.length);
 				float width;
 				for (int j = 0; j < columnWidth.length + 1; j++) {
 					if (j == columnWidth.length) {
@@ -181,13 +177,10 @@ public class PdfWriter {
 					String key = keyList[mapcount];
 					
 					if (j % 2 == 0) {
-						System.out.println("printed");
 						headerText(contentStream, temp_x, temp_y, width, offsetx, offsety, rowHeight, key, fontsize, color, bgColor);
 					} else {
 						mapcount = mapcount + 1;
-						System.out.println(text.get(key) + key);
 						contentText(contentStream, temp_x, temp_y, width, offsetx, offsety, rowHeight, text.get(key), fontsize);
-						System.out.println("printed");
 					}
 					temp_x = temp_x + width;
 				}
@@ -205,7 +198,6 @@ public class PdfWriter {
 		contentStream.beginText();
 		contentStream.setFont(new PDType1Font(HELVETICA_BOLD), fontSize);
 		contentStream.setNonStrokingColor(Color.decode(textcolor));
-		
 		
 		if (text.contains("\n")) {
 			contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety + 15);
@@ -232,8 +224,24 @@ public class PdfWriter {
 		contentStream.beginText();
 		contentStream.setFont(new PDType1Font(TIMES_ROMAN), fontSize);
 		contentStream.setNonStrokingColor(Color.black);
-		contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety);
-		contentStream.showText(text);
+		
+		if (text.contains("\n")) {
+			int yOffset = 15;
+			String[] texts = text.split("\n");
+			int textlength = texts.length-1;
+			contentStream.newLineAtOffset(xStart + offsetx, yStart + textlength* yOffset +offsety);
+			for (String s : texts) {
+				contentStream.showText(s);
+				contentStream.endText();
+				contentStream.beginText();
+				textlength = textlength-1;
+				contentStream.newLineAtOffset(xStart + offsetx, yStart  + textlength* yOffset+offsety);
+			}
+		} else {
+			contentStream.newLineAtOffset(xStart + offsetx, yStart + offsety);
+			contentStream.showText(text);
+		}
+		
 		contentStream.endText();
 		
 		

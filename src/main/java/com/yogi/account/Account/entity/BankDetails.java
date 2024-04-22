@@ -31,7 +31,7 @@ public class BankDetails {
     private String dp_Id;
     private String bo_Status;
     private String account_Status;
-    private String client_Id;
+   
 
     public List<String> bankDetailsTableList() {
         List<String> bankDetailsTableFormat = new ArrayList<>();
