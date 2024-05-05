@@ -50,7 +50,7 @@ public class PasswordServiceImpl implements PasswordService {
 	}
 	
 	@Override
-	public String validateKey(String receivedKey) {
+	public String validateKey(int receivedKey) {
 		 long currentTime = System.currentTimeMillis();
 		System.out.println(currentTime + "cureent time  - time " + time);
 		if (currentTime - time < 120000) {
@@ -87,7 +87,7 @@ public class PasswordServiceImpl implements PasswordService {
 				"</head>\n" +
 				"<body>\n" +
 				"<h1>Secret Key</h1>\n" +
-				"<p>Your Secret Key is : " ,secretKeyGenerator.classAccess(null),"</p>\n" +
+				"<p>Your Secret Key is : " ,secretKeyGenerator.classAccess(0),"</p>\n" +
 				"<br/>\n" +
 				"<br/>\n" +
 				"<p style=\"text-align:center\"><strong>If You have not logged in, secure your data with below link </strong></p>\n" +

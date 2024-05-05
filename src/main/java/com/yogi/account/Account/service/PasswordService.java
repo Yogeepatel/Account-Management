@@ -5,5 +5,5 @@ public interface PasswordService {
 	
 	String login(String username, String password);
 	
-	String validateKey(String receivedKey);
+	String validateKey(int receivedKey);
 }

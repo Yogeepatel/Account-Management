@@ -55,11 +55,11 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         PDDocument document2;
         String password = "SBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI. Statementpdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
             page4TableDataSbi = tabula.pdfTableReader(document, document.getNumberOfPages());
             page3TableDataSbi = tabula.pdfTableReaderWithRuling(document, document.getNumberOfPages() - 1);
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI Statement.pdf"), environment.getProperty(password));
-            document2 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI Statement.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
+            document2 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
             
             page4TextSbi = pdfBox.read(document, document.getNumberOfPages(), false);
             page4TextSortedSbi = pdfBox.read(document2, document.getNumberOfPages(), true);
@@ -80,10 +80,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         PDDocument document = null;
         String password = "UBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/UBI Statement.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/UBI.pdf"), environment.getProperty(password));
             firstPageTableDataUbi = tabula.pdfTableReader(document, 1);
             lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
-
             textLastPageUbi = pdfBox.read(document, document.getNumberOfPages() - 1, true);
         } catch (Exception e) {
             throw new RuntimeException ("Error Occuered while reading pdf " + e.getMessage());
@@ -96,32 +95,31 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     
     @Override
     public String saveBankDetailsofUBI() {
-        if (bankDetailsRepositiory.existsById(AccountConstants.UBI)) {
-            return "Details already Saved";
-        } else {
+       
             try {
                 List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
-                lastPageTableDataUbi = lastPageTableDataUbi.subList(0, bankDetailsTableList.size() - 1);
+                firstPageTableDataUbi = firstPageTableDataUbi.subList(0, bankDetailsTableList.size() - 1);
                 Map<String, String> bankDetailsMapperTable = new HashMap<>();
                 for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
-                    for (int j = 0; j < lastPageTableDataUbi.size(); j++) {
-                        for (int k = 0; k < lastPageTableDataUbi.get(j).size()-1; k++) {
-                            if (!StringUtils.isBlank(lastPageTableDataUbi.get(j).get(k)) &&( lastPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) ||  bankDetailsTableList.get(i).toLowerCase().trim().contains(lastPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
-                               String[] spliyararay = lastPageTableDataUbi.get(j).get(k).split("&");
+                    for (int j = 0; j < firstPageTableDataUbi.size(); j++) {
+                        for (int k = 0; k < firstPageTableDataUbi.get(j).size()-1; k++) {
+                            if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k)) &&( firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) ||  bankDetailsTableList.get(i).toLowerCase().trim().contains(firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
+                               String[] spliyararay = firstPageTableDataUbi.get(j).get(k).split("&");
                                 if (spliyararay.length > 1) {
                                     if (spliyararay[0].toLowerCase().trim().equalsIgnoreCase(bankDetailsTableList.get(i).toLowerCase())) {
-                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), lastPageTableDataUbi.get(j + 1).get(0));
+                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j + 1).get(0));
                                     }
                                     if (spliyararay[1].trim().toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
                                         String address = "";
-                                        for (int s = 2; s < lastPageTableDataUbi.size(); s++) {
-                                            address = StringUtils.join(address, lastPageTableDataUbi.get(s).get(0), " ");
+                                        for (int s = 2; s < firstPageTableDataUbi.size(); s++) {
+                                            address = StringUtils.join(address, firstPageTableDataUbi.get(s).get(0), " ");
                                         }
                                         bankDetailsMapperTable.put(bankDetailsTableList.get(i), address);
                                     }
                                 } else {
-                                    if (!StringUtils.isBlank(lastPageTableDataUbi.get(j).get(k + 1))){
-                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), lastPageTableDataUbi.get(j).get(k + 1));
+                                    if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k + 1))){
+                                        System.out.println();
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j).get(k + 1));
                                     }
                                 }
                             
@@ -129,6 +127,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                         }
                     }
                 }
+                System.out.println(bankDetailsMapperTable);
                 String password = "UBI.password";
                 BankDetails bankDetails = BankDetails.builder().id(AccountConstants.UBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
                         .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
@@ -140,60 +139,61 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             } catch (Exception e) {
                 return "Error Occured while saving data";
             }
-        }
+        
     }
     
     @Override
     public String saveBankDetailsofSBI() {
-        if (bankDetailsRepositiory.existsById(AccountConstants.SBI)) {
-            return "Details already Saved";
-        } else {
+        
+       
             try {
                 List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
                 page4TableDataSbi = page4TableDataSbi.subList(0, bankDetailsTableList.size() - 1);
                 String[] accountDetails = page4TextSortedSbi.split("\n");
-
+                
                 Map<String, String> bankDetailsMapperTable = new HashMap<>();
                 for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
-	                for (List<String> strings : page4TableDataSbi) {
-		                if (strings.get(0).toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
-			                bankDetailsMapperTable.put(bankDetailsTableList.get(i), strings.get(1));
-			                break;
-			                
-		                } else if (!StringUtils.isBlank(page4TextSortedSbi)) {
-			                for (int s = 0; s < accountDetails.length; s++) {
-				                if (accountDetails[s].contains("Customer ID") && bankDetailsTableList.get(i).equalsIgnoreCase("Customer ID")) {
-					                bankDetailsMapperTable.put(bankDetailsTableList.get(i), accountDetails[s].split(":")[1].trim());
-					                break;
-				                }
-				                if (accountDetails[s].contains("SAVING ACCOUNT") && bankDetailsTableList.get(i).equalsIgnoreCase("Account Number")) {
-					                bankDetailsMapperTable.put(bankDetailsTableList.get(i), accountDetails[s + 1]);
-					                break;
-				                }
-				                
-			                }
-			                
-		                }
-		                if (!bankDetailsMapperTable.containsKey(bankDetailsTableList.get(i))) {
-                   
-			                bankDetailsMapperTable.put(bankDetailsTableList.get(i), null);
-		                }
-		                
-	                }
+                    for (List<String> strings : page4TableDataSbi) {
+                        if (strings.get(0).toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
+                            bankDetailsMapperTable.put(bankDetailsTableList.get(i), strings.get(1));
+                            break;
+                            
+                        } else if (!StringUtils.isBlank(page4TextSortedSbi)) {
+                            for (int s = 0; s < accountDetails.length; s++) {
+                                if (accountDetails[s].contains("Customer ID") && bankDetailsTableList.get(i).equalsIgnoreCase("Customer ID")) {
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), accountDetails[s].split(":")[1].trim());
+                                    break;
+                                }
+                                if (accountDetails[s].contains("SAVING ACCOUNT") && bankDetailsTableList.get(i).equalsIgnoreCase("Account Number")) {
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), accountDetails[s + 1]);
+                                    break;
+                                }
+                                
+                            }
+                            
+                        }
+                        if (!bankDetailsMapperTable.containsKey(bankDetailsTableList.get(i))) {
+                            
+                            bankDetailsMapperTable.put(bankDetailsTableList.get(i), null);
+                        }
+                        
+                    }
                 }
-
+                
                 String password = "SBI.password";
                 BankDetails bankDetails = BankDetails.builder().id(AccountConstants.SBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
                         .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
                         .name(bankDetailsMapperTable.get("name")).ifscCode(bankDetailsMapperTable.get("ifsc")).customerId(bankDetailsMapperTable.get("Customer ID"))
-                        .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
+                        .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password)).panNumber(environment.getProperty("pan"))
                         .build();
+                
                 bankDetailsRepositiory.save(bankDetails);
                 return "Data Saved Successfully";
+            
             } catch (Exception e) {
                 return "Error Occured while saving data";
             }
-        }
+        
 
     }
     

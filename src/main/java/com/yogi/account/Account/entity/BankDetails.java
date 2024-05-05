@@ -27,10 +27,10 @@ public class BankDetails {
     private String micrCode;
     private String customerId;
     
-    private String pan_Number;
-    private String dp_Id;
-    private String bo_Status;
-    private String account_Status;
+    private String panNumber;
+    private String dpId;
+    private String boStatus;
+    private String accountStatus;
    
 
     public List<String> bankDetailsTableList() {

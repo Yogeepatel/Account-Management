@@ -52,7 +52,7 @@ public class EmailGenerator {
 	
 	private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws Exception {
 		// Load client secrets.
-		InputStream in = EmailGenerator.class.getResourceAsStream("/static/client_secret_434177171725-jdu43gve2ah971e5110bjri9v26hqies.apps.googleusercontent.com.json");
+		InputStream in = EmailGenerator.class.getResourceAsStream("/static/client_secret_434177171725-laro9rrfk2oo32dc9hfr6f3vqga67v2s.apps.googleusercontent.com.json");
 		
 		if (in == null) {
 			throw new FileNotFoundException("Resource not found: client Secret file");
@@ -60,7 +60,7 @@ public class EmailGenerator {
 		GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(jsonFactory, new InputStreamReader(in));
 		GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, jsonFactory, clientSecrets, Set.of(GmailScopes.GMAIL_SEND)).setDataStoreFactory(new FileDataStoreFactory(Paths.get("tokens").toFile())).setAccessType("offline").build();
 		LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-		return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+		return new AuthorizationCodeInstalledApp(flow, receiver).authorize("pratapatel2003@gmail.com");
 	}
 	
 	public void sendMail(String messageSubject, Map<String, String> bodyText, String path, boolean destruct) throws Exception {
@@ -69,7 +69,6 @@ public class EmailGenerator {
 		MimeMessage email = new MimeMessage(session);
 		
 		email.setFrom(new InternetAddress(Objects.requireNonNull(environment.getProperty("email.senderEmailId"))));
-		System.out.println(environment.getProperty("email.senderEmailId"));
 		email.addRecipient(TO, new InternetAddress(Objects.requireNonNull(environment.getProperty("email.receiverEmailId"))));
 		if (destruct) {
 			email.addRecipient(TO, new InternetAddress(Objects.requireNonNull(environment.getProperty("email.alternativeEmailId"))));

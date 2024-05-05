@@ -19,6 +19,7 @@ import java.nio.file.Files;
 
 
 @AllArgsConstructor
+@CrossOrigin
 @RestController
 public class AccountController {
 	private GeneratePdfService generatePdfService;
@@ -27,13 +28,13 @@ public class AccountController {
 	private PasswordService passwordService;
 	
 	
-	@GetMapping("/login")
+	@PostMapping("/login")
 	public String login(@RequestBody LoginDto loginDto) {
 		return passwordService.login(loginDto.getUsername(), loginDto.getPassword());
 	}
 	
 	@GetMapping("/key/{key}")
-	public String validateKey(@PathVariable String key) {
+	public String validateKey(@PathVariable int key) {
 		return passwordService.validateKey(key);
 	}
 	
@@ -83,26 +84,25 @@ public class AccountController {
 	
 	
 	/* Endpoint for saving bank details and monthly expenditure and FDs*/
-	@GetMapping("/updatebankdetails")
-	public String addStatementDetails(@RequestParam String task)   {
+	@GetMapping("/updatebankdata")
+	public String addStatementDetails()   {
 		fetchBankDataService.fetchSbiStatementData();fetchBankDataService.fetchUbiStatementData();
 		return StringUtils.join(
-		fetchBankDataService.collectFdDataofUBI(),
-		fetchBankDataService.collectFdDataofSBI(),
-		fetchBankDataService.ExpenditureDataofSBI(),
-		fetchBankDataService.ExpenditureDataofUBI(),
-		fetchBankDataService.saveBankDetailsofSBI(),
+		fetchBankDataService.collectFdDataofUBI(),'\n',
+		fetchBankDataService.collectFdDataofSBI(),'\n',
+		fetchBankDataService.ExpenditureDataofSBI(),'\n',
+		fetchBankDataService.ExpenditureDataofUBI(),'\n',
+		fetchBankDataService.saveBankDetailsofSBI(),'\n',
 		fetchBankDataService.saveBankDetailsofUBI());
 	}
 	
-	@GetMapping("/updateStocksDetails")
-	public String addMfandStocksDetails(@RequestParam String task)   {
-		fetchMfStocksService.fetchStocksAndMfTransactionStatement();
-		fetchMfStocksService.fetchStocksAndMfMetaData();
-		return StringUtils.join(
-				fetchMfStocksService.saveStocks(),
-				fetchMfStocksService.saveSipandMf(),
-				fetchMfStocksService.saveAccountDetails(),
-				fetchMfStocksService.addElssStatementData());
+	@GetMapping("/updatemfstocksdata")
+	public String addMfandStocksDetails()   {
+		fetchMfStocksService.generateStocksMfData();
+		return StringUtils.join(fetchMfStocksService.addElssStatementData(),'\n',
+				fetchMfStocksService.saveStocks(),'\n',
+				fetchMfStocksService.saveSipandMf(),'\n',
+				fetchMfStocksService.saveAccountDetails()
+				);
 	}
 }
