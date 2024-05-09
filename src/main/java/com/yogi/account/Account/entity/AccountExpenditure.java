@@ -1,18 +1,23 @@
 package com.yogi.account.Account.entity;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
-@Getter
-@Setter
+
 @AllArgsConstructor
+@Data
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Document(collection = "Expenditure")
 public class AccountExpenditure {
     @MongoId
-    private String id;
-    private String openingBalance;
-    private String closingBalance;
+     String id;
+     String month;
+     int moneyAdded;
+     double openingBalance;
+     double closingBalance;
+     double expenditureFromAccount;
 }

@@ -270,10 +270,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 			if (!StringUtils.isBlank(bankDetails.getAccountStatus())) {
 				text.put(headerData[9], bankDetails.getAccountStatus());
-				
 			}
-			System.out.println(bankDetails.getAddress());
-			
 			String address ="";
 			for(String temp:bankDetails.getAddress().split(" ") ){
 				if(!address.contains(temp)){

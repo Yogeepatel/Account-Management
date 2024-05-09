@@ -6,14 +6,24 @@ public interface FetchBankDataService {
     void fetchUbiStatementData() ;
     
     String saveBankDetailsofUBI();
-    
-    String saveBankDetailsofSBI();
+	
+	String saveBankDetailsofIcici();
+	
+	void fetchIciciStatementData();
+	
+	String saveBankDetailsofSBI();
     
     String collectFdDataofSBI() ;
     
     String collectFdDataofUBI() ;
     
-    String ExpenditureDataofSBI();
+    String expenditureDataofSBI();
     
-    String ExpenditureDataofUBI();
+    String expenditureDataofUBI();
+	
+	String expenditureDataofIcici();
+	
+	String salaryUsage();
+	
+	String yearlyExpenditure();
 }

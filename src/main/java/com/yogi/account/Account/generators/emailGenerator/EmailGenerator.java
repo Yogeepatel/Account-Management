@@ -22,6 +22,7 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ import java.util.Set;
 
 import static jakarta.mail.Message.RecipientType.TO;
 
+@Slf4j
 @Component
 @AllArgsConstructor
 public class EmailGenerator {
@@ -94,12 +96,10 @@ public class EmailGenerator {
 		message.setRaw(encodedEmail);
 		try {
 			message = service.users().messages().send(environment.getProperty("email.senderEmailId"), message).execute();
-			System.out.println("Message id: " + message.getId());
-			System.out.println(message.toPrettyString());
 		} catch (GoogleJsonResponseException e) {
 			GoogleJsonError error = e.getDetails();
 			if (error.getCode() == 403) {
-				System.err.println("Unable to send message: " + e.getDetails());
+				log.error("Unable to send message: {}" , e.getDetails());
 			} else {
 				throw e;
 			}

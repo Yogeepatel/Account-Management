@@ -70,8 +70,8 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		
 	}
 	
-
-	private void fetchStocksAndMfMetaData() {
+	@Override
+	public void fetchStocksAndMfMetaData() {
 		PDDocument document;
 		try {
 			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
@@ -119,7 +119,8 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		
 	}
 	
-	private  void fetchStocksAndMfTransactionStatement() {
+	@Override
+	public  void fetchStocksAndMfTransactionStatement() {
 		PDDocument document;
 		try {
 			document = AccountUtils.copyDocument("classpath:UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
@@ -193,13 +194,6 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		
-	}
-	
-	@Override
-	public void generateStocksMfData(){
-		fetchStocksAndMfMetaData();
-		fetchStocksAndMfTransactionStatement();
 		
 	}
 	

@@ -3,7 +3,9 @@ package com.yogi.account.Account.service;
 public interface FetchMfStocksService {
 	String addElssStatementData();
 	
-	void generateStocksMfData();
+	void fetchStocksAndMfMetaData();
+	
+	void fetchStocksAndMfTransactionStatement();
 	
 	String saveSipandMf();
 	String saveAccountDetails();

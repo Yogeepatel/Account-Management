@@ -2,14 +2,10 @@ package com.yogi.account.Account.serviceImpl;
 
 import com.yogi.account.Account.constants.AccountConstants;
 import com.yogi.account.Account.constants.FdEnums;
-import com.yogi.account.Account.entity.AccountExpenditure;
-import com.yogi.account.Account.entity.BankDetails;
-import com.yogi.account.Account.entity.FDs;
+import com.yogi.account.Account.entity.*;
 import com.yogi.account.Account.pdfManipulation.PdfBox;
 import com.yogi.account.Account.pdfManipulation.Tabula;
-import com.yogi.account.Account.repository.AccountExpenditureRepository;
-import com.yogi.account.Account.repository.BankDetailsRepositiory;
-import com.yogi.account.Account.repository.FDRepository;
+import com.yogi.account.Account.repository.*;
 import com.yogi.account.Account.service.FetchBankDataService;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -23,10 +19,10 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.ResourceUtils;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -36,21 +32,28 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     private BankDetailsRepositiory bankDetailsRepositiory;
     private FDRepository fdRepository;
     private AccountExpenditureRepository bankAccountExpenditureRepositiory;
+    private SalaryUsageRepository salaryUsageRepository;
+    private YearlyExpenditureRepository yearlyExpenditureRepository;
     
     public static List<List<String>> firstPageTableDataUbi = null;
     public static List<List<String>> lastPageTableDataUbi = null;
     public static String page4TextSbi;
     public static String page4TextSortedSbi;
     public static List<List<String>> page4TableDataSbi;
-    public static  List<List<String>> page3TableDataSbi;
+    public static List<List<String>> page3TableDataSbi;
     public static String textLastPageUbi = null;
-
+    public static String page1TextIcici;
+    public static String page2TextIcici;
+    public static List<List<String>> tabularIciciStatementdata;
+    
+    public static String month = LocalDate.now().minusMonths(1).getMonth().name();
+    
     @Autowired
     public Environment environment;
-
+    
     @Override
-    public void fetchSbiStatementData()  {
-       
+    public void fetchSbiStatementData() {
+        
         PDDocument document;
         PDDocument document2;
         String password = "SBI.password";
@@ -64,18 +67,43 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             page4TextSbi = pdfBox.read(document, document.getNumberOfPages(), false);
             page4TextSortedSbi = pdfBox.read(document2, document.getNumberOfPages(), true);
         } catch (Exception e) {
-            throw new RuntimeException  ("Error Occuered while loading pdf " + e.getMessage());
+            throw new RuntimeException("Error Occuered while loading pdf " + e.getMessage());
         }
         if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(page4TableDataSbi) || StringUtils.isBlank(page4TextSbi) || CollectionUtils.isEmpty(page3TableDataSbi)) {
-            throw new RuntimeException ( "Error Occuered while reading pdf " );
+            throw new RuntimeException("Error Occuered while reading pdf ");
         }
         
-       
+        
     }
-
+    
     @Override
-    public void fetchUbiStatementData()  {
-       
+    public void fetchIciciStatementData() {
+        try {
+            PDDocument pdDocument1 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici2.pdf"));
+            page1TextIcici = pdfBox.read(pdDocument1, 1, false);
+            PDDocument document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici2.pdf"));
+            page2TextIcici = pdfBox.read(document, document.getNumberOfPages(), false);
+            PDDocument pdDocument = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici.pdf"));
+            int page = 2;
+            List<List<String>> dataList = tabula.pdfTableReader(pdDocument, 1);
+            while (page <= pdDocument.getNumberOfPages()) {
+                pdDocument = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici.pdf"));
+                List<List<String>> dataListTemp = tabula.pdfTableReader(pdDocument, page);
+                dataList.addAll(dataListTemp);
+                page = page +1;
+            }
+            tabularIciciStatementdata = new ArrayList<>(dataList);
+        } catch (Exception e) {
+            throw new RuntimeException("Error Occurred while loading pdf " + e.getMessage());
+        }
+        if (ObjectUtils.isEmpty(tabularIciciStatementdata) || CollectionUtils.isEmpty(tabularIciciStatementdata) || StringUtils.isBlank(page2TextIcici) || StringUtils.isBlank(page1TextIcici)) {
+            throw new RuntimeException("Error Occurred while reading pdf ");
+        }
+    }
+	    
+	    @Override
+    public void fetchUbiStatementData() {
+        
         
         PDDocument document = null;
         String password = "UBI.password";
@@ -85,9 +113,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
             textLastPageUbi = pdfBox.read(document, document.getNumberOfPages() - 1, true);
         } catch (Exception e) {
-            throw new RuntimeException ("Error Occuered while reading pdf " + e.getMessage());
+            throw new RuntimeException("Error Occuered while reading pdf " + e.getMessage());
         }
-        if ( ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(firstPageTableDataUbi) || StringUtils.isBlank(textLastPageUbi) || CollectionUtils.isEmpty(lastPageTableDataUbi)) {
+        if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(firstPageTableDataUbi) || StringUtils.isBlank(textLastPageUbi) || CollectionUtils.isEmpty(lastPageTableDataUbi)) {
             throw new RuntimeException("Error Occuered while reading pdf ");
         }
         
@@ -95,53 +123,112 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     
     @Override
     public String saveBankDetailsofUBI() {
-       
-            try {
-                List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
-                firstPageTableDataUbi = firstPageTableDataUbi.subList(0, bankDetailsTableList.size() - 1);
-                Map<String, String> bankDetailsMapperTable = new HashMap<>();
-                for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
-                    for (int j = 0; j < firstPageTableDataUbi.size(); j++) {
-                        for (int k = 0; k < firstPageTableDataUbi.get(j).size()-1; k++) {
-                            if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k)) &&( firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) ||  bankDetailsTableList.get(i).toLowerCase().trim().contains(firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
-                               String[] spliyararay = firstPageTableDataUbi.get(j).get(k).split("&");
-                                if (spliyararay.length > 1) {
-                                    if (spliyararay[0].toLowerCase().trim().equalsIgnoreCase(bankDetailsTableList.get(i).toLowerCase())) {
-                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j + 1).get(0));
-                                    }
-                                    if (spliyararay[1].trim().toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
-                                        String address = "";
-                                        for (int s = 2; s < firstPageTableDataUbi.size(); s++) {
-                                            address = StringUtils.join(address, firstPageTableDataUbi.get(s).get(0), " ");
-                                        }
-                                        bankDetailsMapperTable.put(bankDetailsTableList.get(i), address);
-                                    }
-                                } else {
-                                    if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k + 1))){
-                                        System.out.println();
-                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j).get(k + 1));
-                                    }
+        
+        try {
+            List<String> bankDetailsTableList = new BankDetails().bankDetailsTableList();
+            firstPageTableDataUbi = firstPageTableDataUbi.subList(0, bankDetailsTableList.size() - 1);
+            Map<String, String> bankDetailsMapperTable = new HashMap<>();
+            for (int i = 0; i < bankDetailsTableList.size() - 1; i++) {
+                for (int j = 0; j < firstPageTableDataUbi.size(); j++) {
+                    for (int k = 0; k < firstPageTableDataUbi.get(j).size() - 1; k++) {
+                        if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k)) && (firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim().contains(bankDetailsTableList.get(i).toLowerCase()) || bankDetailsTableList.get(i).toLowerCase().trim().contains(firstPageTableDataUbi.get(j).get(k).toLowerCase().split(":")[0].trim()))) {
+                            String[] spliyararay = firstPageTableDataUbi.get(j).get(k).split("&");
+                            if (spliyararay.length > 1) {
+                                if (spliyararay[0].toLowerCase().trim().equalsIgnoreCase(bankDetailsTableList.get(i).toLowerCase())) {
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j + 1).get(0));
                                 }
-                            
+                                if (spliyararay[1].trim().toLowerCase().contains(bankDetailsTableList.get(i).toLowerCase())) {
+                                    String address = "";
+                                    for (int s = 2; s < firstPageTableDataUbi.size(); s++) {
+                                        address = StringUtils.join(address, firstPageTableDataUbi.get(s).get(0), " ");
+                                    }
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), address);
+                                }
+                            } else {
+                                if (!StringUtils.isBlank(firstPageTableDataUbi.get(j).get(k + 1))) {
+                                    bankDetailsMapperTable.put(bankDetailsTableList.get(i), firstPageTableDataUbi.get(j).get(k + 1));
+                                }
                             }
+                            
                         }
                     }
                 }
-                System.out.println(bankDetailsMapperTable);
-                String password = "UBI.password";
-                BankDetails bankDetails = BankDetails.builder().id(AccountConstants.UBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
-                        .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
-                        .name(bankDetailsMapperTable.get("name")).ifscCode(bankDetailsMapperTable.get("ifsc")).customerId(bankDetailsMapperTable.get("Customer ID"))
-                        .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
-                        .build();
-                bankDetailsRepositiory.save(bankDetails);
-                return "Data Saved Successfully";
-            } catch (Exception e) {
-                return "Error Occured while saving data";
             }
+            String password = "UBI.password";
+            BankDetails bankDetails = BankDetails.builder().id(AccountConstants.UBI).accountNumber(bankDetailsMapperTable.get("Account Number"))
+                    .address(bankDetailsMapperTable.get("address")).micrCode(bankDetailsMapperTable.get("micr"))
+                    .name(bankDetailsMapperTable.get("name")).ifscCode(bankDetailsMapperTable.get("ifsc")).customerId(bankDetailsMapperTable.get("Customer ID"))
+                    .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
+                    .build();
+            bankDetailsRepositiory.save(bankDetails);
+            return "Data Saved Successfully";
+        } catch (Exception e) {
+            return "Error Occured while saving data";
+        }
         
     }
     
+    
+    
+    
+    @Override
+    public String saveBankDetailsofIcici() {
+        String[] page1TextArray = page1TextIcici.split("\n");
+        String fd = "";
+        String address = "";
+        String name = "";
+        String branch = "";
+        String custId = "";
+        String accountNumber = "";
+        
+        String micr = "";
+        String ifsc = "";
+        int count = 0;
+        for (int i = 0; i < page1TextArray.length; i++) {
+            if (page1TextArray[i].contains("ID:")) {
+                custId = page1TextArray[i].trim().split("ID:")[1].trim().split(" ")[0];
+            }
+            if (page1TextArray[i].contains("ACCOUNT DETAILS")) {
+                String[] value = page1TextArray[i + 2].split(" ");
+                accountNumber = value[2];
+                
+                i = i + 2;
+            }
+            if (page1TextArray[i].contains("YOGENDRA")) {
+                name = page1TextArray[i].trim();
+                count = 4;
+                while (count > 0) {
+                    i = i + 1;
+                    address = StringUtils.join(address, " ", page1TextArray[i].trim());
+                    count = count - 1;
+                }
+            }
+            if (page1TextArray[i].contains("Base Branch")) {
+                branch = StringUtils.join(branch, page1TextArray[i].trim().split("Branch:")[1]);
+                count = 3;
+                while (count > 0) {
+                    i = i + 1;
+                    branch = StringUtils.join(branch, " ", page1TextArray[i].trim());
+                    count = count - 1;
+                }
+            }
+        }
+        String[] page2TextArray = page2TextIcici.split("\n");
+        for (String data : page2TextArray) {
+            if (data.contains("Savings")) {
+                String[] dataArray = data.split(" ");
+                accountNumber = dataArray[1];
+                micr = dataArray[2];
+                ifsc = dataArray[3];
+            }
+        }
+        branch = branch.split("Visit")[0];
+        BankDetails bankDetails = BankDetails.builder().id(AccountConstants.ICICI).name(name).branch(branch).address(address).ifscCode(ifsc).panNumber(environment.getProperty("pan"))
+                .accountNumber(accountNumber).customerId(custId).micrCode(micr).build();
+        bankDetailsRepositiory.save(bankDetails);
+        
+        return "Data Saved Successfully";
+    }
     @Override
     public String saveBankDetailsofSBI() {
         
@@ -315,22 +402,25 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     }
     
     @Override
-    public String ExpenditureDataofSBI() {
-        if (bankAccountExpenditureRepositiory.existsById(AccountConstants.SBI)) {
-            return "Details already Saved";
+    public String expenditureDataofSBI() {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.SBI,month).isEmpty()) {
+            return "Expenditure Details already Saved";
         }
         String newText = page4TextSbi.split("TRANSACTION OVERVIEW")[1];
         String[] texts = newText.split("\n");
-        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.SBI)
-                .closingBalance(texts[2].split(":")[1]).openingBalance(texts[1].split(":")[1]).build();
+        SalaryUsage salaryUsage = salaryUsageRepository.findById(month).orElseThrow();
+        Double openingBalance = Double.parseDouble(texts[1].split(":")[1]) +salaryUsage.getSecurity();
+        Double closingBalance = Double.parseDouble(texts[2].split(":")[1]);
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.SBI).month(String.valueOf(month))
+                .closingBalance(closingBalance).openingBalance(openingBalance).expenditureFromAccount(openingBalance-closingBalance).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";
     }
     
     @Override
-    public String ExpenditureDataofUBI() {
-        if (bankAccountExpenditureRepositiory.existsById(AccountConstants.UBI)) {
-            return "Details already Saved";
+    public String expenditureDataofUBI() {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.UBI,month).isEmpty()) {
+            return "Expenditure Details already Saved";
         }
         String openingBalance = "";
         String closingBalance = "";
@@ -344,10 +434,155 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                 closingBalance = texts[i].split(" ")[7].trim();
             }
         }
-        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.UBI)
-                .closingBalance(closingBalance).openingBalance(openingBalance).build();
+        
+        SalaryUsage salaryUsage = salaryUsageRepository.findById(month).orElseThrow();
+        Double openingBalancewithAddedMoney = Double.parseDouble(openingBalance.replace(",","")) + salaryUsage.getSelf();
+        Double closingBalanceDouble = Double.parseDouble(closingBalance.replace(",","")) ;
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.UBI).month(String.valueOf(month))
+                .closingBalance(closingBalanceDouble).openingBalance(openingBalancewithAddedMoney).expenditureFromAccount((openingBalancewithAddedMoney-closingBalanceDouble)).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
         return "Expenditure Data Saved Successfully";
     }
+    
+    @Override
+    public String expenditureDataofIcici() {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.ICICI,month).isEmpty()) {
+            return "Expenditure Details already Saved";
+        }
+       if (ObjectUtils.isEmpty(tabularIciciStatementdata)){
+           return ("Tabulated statement pdf Required");
+       }
+       int val =  page1TextIcici.indexOf("B/F");
+        String openingAmountString = page1TextIcici.substring(val+4,val+13);
+       Double openingAmount = Double.parseDouble(openingAmountString.trim().replace(",",""));
+       Double salaryUsed =totalSalaryUsed(getSalaryMap());
+        Double closingAmount = openingAmount - salaryUsed;
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.ICICI).month(String.valueOf(month))
+                .closingBalance(closingAmount).openingBalance(openingAmount).expenditureFromAccount(salaryUsed).build();
+        bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
+        return "Expenditure Data Saved Successfully";
+    }
+    @Override
+    public String salaryUsage() {
+        List<String> expenditureFields = new ArrayList<>(List.of("Self" , "Dad","Mom","Brother","Fd","Mf","Stocks","security","Others"));
+        Map<String, Integer> expenditureFieldsValues =getSalaryMap();
+            SalaryUsage salaryUsage = SalaryUsage.builder().id(month).self(expenditureFieldsValues.get(expenditureFields.get(0)))
+                    .dad(expenditureFieldsValues.get(expenditureFields.get(1))).mom(expenditureFieldsValues.get(expenditureFields.get(2))).brother(expenditureFieldsValues.get(expenditureFields.get(3)))
+                    .fixedDeposits(expenditureFieldsValues.get(expenditureFields.get(4))).mutualFunds(expenditureFieldsValues.get(expenditureFields.get(5))).stocks(expenditureFieldsValues.get(expenditureFields.get(6)))
+                    .security(expenditureFieldsValues.get(expenditureFields.get(7))).others(expenditureFieldsValues.get(expenditureFields.get(8))).build();
+            salaryUsageRepository.save(salaryUsage);
+            
+	    return "Salary Usage saved successfully for month "+month;
+     
+	   
+    }
+    private Map<String, Integer> getSalaryMap(){
+        List<String> expenditureFields = new ArrayList<>(List.of("Self" , "Dad","Mom","Brother","Fd","Mf","Stocks","security","Others"));
+        Map<String, Integer> expenditureFieldsValues = expenditureFields.stream().collect(Collectors.toMap(key -> key,value -> 0));
+        tabularIciciStatementdata.remove(0);
+        tabularIciciStatementdata.forEach(data -> {
+                if (data.get(3).contains("DR") && data.get(1).toLowerCase().contains("mf")) {
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(5)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(5),updatedValue);
+                }
+                
+                else if (data.get(3).contains("DR") && (data.get(1).toLowerCase().contains("father") || data.get(1).toLowerCase().contains("papa") || data.get(1).toLowerCase().contains("9425330440"))){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(1)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(1),updatedValue);
+                }
+                else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("mother") || data.get(1).toLowerCase().contains("mom") || data.get(1).toLowerCase().contains("mummy"))){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(2)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(2),updatedValue);
+                }
+                else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("brother") || data.get(1).toLowerCase().contains("sushant") || data.get(1).toLowerCase().contains("9424599340"))){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(3)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(3),updatedValue);
+                }
+                else if ((data.get(1).toLowerCase().contains("9424333440@ibl") && data.get(1).toLowerCase().contains("union bank of i")) || data.get(1).toLowerCase().contains("cred") ){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(0));
+                    
+                    if (data.get(3).contains("DR")) {
+                         updatedValue = expenditureFieldsValues.get(expenditureFields.get(0)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    }else if(data.get(3).contains("CR")) {
+                        
+                         updatedValue = expenditureFieldsValues.get(expenditureFields.get(0)) - Integer.parseInt(data.get(2).split("\\.")[0]);
+                    }
+                    expenditureFieldsValues.put(expenditureFields.get(0),updatedValue);
+                }
+                else if ((
+                        data.get(1).toLowerCase().contains("security money") || data.get(1).toLowerCase().contains("self") || data.get(1).toLowerCase().contains("bank account xx")) && data.get(1).toLowerCase().contains("state bank of i")) {
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(7));
+                    if (data.get(3).contains("DR")) {
+                     updatedValue = expenditureFieldsValues.get(expenditureFields.get(7)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    }else if(data.get(3).contains("CR")) {
+                        updatedValue = expenditureFieldsValues.get(expenditureFields.get(7)) - Integer.parseInt(data.get(2).split("\\.")[0]);
+                    }
+                        expenditureFieldsValues.put(expenditureFields.get(7), updatedValue);
+                    
+                }
+                else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("zerodha") && data.get(1).toLowerCase().contains("broking") )){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(6)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(6),updatedValue);
+                }
+                else if(data.get(3).contains("DR")){
+                    int updatedValue = expenditureFieldsValues.get(expenditureFields.get(8)) + Integer.parseInt(data.get(2).split("\\.")[0]);
+                    expenditureFieldsValues.put(expenditureFields.get(8),updatedValue);
+                }
+            });
+            expenditureFieldsValues.put(expenditureFields.get(4), fdRepository.findAll().stream().filter(fd -> LocalDate.now().minusMonths(1).getMonthValue() ==  Integer.parseInt(fd.getAccountOpenDate().split("-")[1])).map(fd -> Integer.parseInt(fd.getAmount())).reduce(0,Integer::sum));
+            return expenditureFieldsValues;
+        
+        }
+        private Double totalSalaryUsed(Map<String, Integer> expenditureFieldsValues){
+            Double totalAmount= 0.0;
+            for ( Map.Entry<String, Integer> data : expenditureFieldsValues.entrySet()){
+            totalAmount += data.getValue().doubleValue();
+            }
+            return totalAmount;
+        }
+        
+        @Override
+        public String yearlyExpenditure(){
+            List<YearlyExpenditure> yearlyExpendituresaved = yearlyExpenditureRepository.findAll();
+            List<String> savedMonths =yearlyExpendituresaved.stream().map(YearlyExpenditure::getId).toList();
+            List<String> monthNames = Arrays.stream(Month.values()).map(Month::name).collect(Collectors.toList());
+            for (int i = 0; i < 3; i++) {
+                String month = monthNames.remove(0);
+                monthNames.add(month);
+            }
+            
+            
+            for (int i = 1; i < monthNames.size(); i++) {
+                String monthTemp = monthNames.get(i);
+                if (!savedMonths.contains(monthTemp) && LocalDate.now().getMonth().getValue() - (i + 3) > 0) {
+                    Optional<AccountExpenditure> iciciOptional = bankAccountExpenditureRepositiory.findExpenditureFromAccount(AccountConstants.ICICI, month);
+                    Double icici = 0.0;
+                    Double sbi = 0.0;
+                    Double ubi = 0.0;
+                    if (iciciOptional.isPresent()) {
+                        AccountExpenditure iciciAccountExpenditure = iciciOptional.get();
+                        icici = ObjectUtils.isNotEmpty(iciciAccountExpenditure.getExpenditureFromAccount()) ? iciciAccountExpenditure.getExpenditureFromAccount() : 0.0;
+                        
+                    }
+                    Optional<AccountExpenditure> sbiOptional = bankAccountExpenditureRepositiory.findExpenditureFromAccount(AccountConstants.SBI, month);
+                    if (sbiOptional.isPresent()) {
+                        AccountExpenditure iciciAccountExpenditure = sbiOptional.get();
+                        sbi = ObjectUtils.isNotEmpty(iciciAccountExpenditure.getExpenditureFromAccount()) ? iciciAccountExpenditure.getExpenditureFromAccount() : 0.0;
+                        
+                    }
+                    
+                    Optional<AccountExpenditure> ubiOptional = bankAccountExpenditureRepositiory.findExpenditureFromAccount(AccountConstants.UBI, month);
+                    if (ubiOptional.isPresent()) {
+                        AccountExpenditure iciciAccountExpenditure = ubiOptional.get();
+                        ubi = ObjectUtils.isNotEmpty(iciciAccountExpenditure.getExpenditureFromAccount()) ? iciciAccountExpenditure.getExpenditureFromAccount() : 0.0;
+                        
+                    }
+                    YearlyExpenditure yearlyExpenditure = new YearlyExpenditure(month, sbi, ubi, icici, sbi + ubi + icici);
+                    yearlyExpenditureRepository.save(yearlyExpenditure);
+                }
+            };
+           return "All expenditure saved for year till now.";
+        }
+    
 
 }

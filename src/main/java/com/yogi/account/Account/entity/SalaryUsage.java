@@ -1,6 +1,7 @@
 package com.yogi.account.Account.entity;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
@@ -9,13 +10,19 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Document(collection = "SalaryUsage")
 public class SalaryUsage {
     @MongoId
-    private String id;
-    private String date;
-    private String reason;
-    private String deposits;
-    private String withdrawals;
-    private String balance;
+     String id;
+     
+    int self ;
+ int dad;
+ int mom;
+ int  brother;
+ int  fixedDeposits;
+ int   mutualFunds;
+ int stocks;
+ int  security;
+ int  others;
 }

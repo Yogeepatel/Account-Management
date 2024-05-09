@@ -52,7 +52,6 @@ public class PasswordServiceImpl implements PasswordService {
 	@Override
 	public String validateKey(int receivedKey) {
 		 long currentTime = System.currentTimeMillis();
-		System.out.println(currentTime + "cureent time  - time " + time);
 		if (currentTime - time < 120000) {
 			boolean check =  (boolean) secretKeyGenerator.classAccess(receivedKey);
 			if (check){

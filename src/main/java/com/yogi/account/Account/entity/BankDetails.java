@@ -1,36 +1,36 @@
 package com.yogi.account.Account.entity;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Document(collection = "BankDetails")
 public class BankDetails {
     @MongoId
-    private String id;
-    private String name;
-    private String accountNumber;
-    private String ifscCode;
-    private String branch;
-    private String address;
-    private String password;
-    private String micrCode;
-    private String customerId;
+     String id;
+     String name;
+     String accountNumber;
+     String ifscCode;
+     String branch;
+     String address;
+     String password;
+     String micrCode;
+     String customerId;
     
-    private String panNumber;
-    private String dpId;
-    private String boStatus;
-    private String accountStatus;
+     String panNumber;
+     String dpId;
+     String boStatus;
+     String accountStatus;
    
 
     public List<String> bankDetailsTableList() {
@@ -46,16 +46,5 @@ public class BankDetails {
         return bankDetailsTableFormat;
     }
 
-    public Map<String, Integer> bankDetailsMapperTable(String[] text) {
-        List<String> fdFormat = bankDetailsTableList();
-        Map<String, Integer> map = new HashMap<>();
-        for (int j = 1; j < fdFormat.size()-1; j++) {
-            for (int k = 0; k < text.length; k++) {
-                if (text[k].toLowerCase().contains(fdFormat.get(j).toLowerCase())) {
-                    map.put(fdFormat.get(j), k);
-                }
-            }
-        }
-        return map;
-    }
+    
 }
