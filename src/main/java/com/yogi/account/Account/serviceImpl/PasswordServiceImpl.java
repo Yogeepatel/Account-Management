@@ -24,12 +24,12 @@ public class PasswordServiceImpl implements PasswordService {
 	
 	
 	private static long time;
-	@Override
+
 	public Object getpasswordhelper() {
 		return passwordGenerator.classAccess(null,true);
 	}
 	
-	@Override
+
 	public String login(String username, String password) {
 		if (usernameCheck(username)) {
 			boolean login = (boolean) validatePassword(password);
@@ -49,7 +49,7 @@ public class PasswordServiceImpl implements PasswordService {
 		return "Wrong Username";
 	}
 	
-	@Override
+
 	public String validateKey(int receivedKey) {
 		 long currentTime = System.currentTimeMillis();
 		if (currentTime - time < 120000) {

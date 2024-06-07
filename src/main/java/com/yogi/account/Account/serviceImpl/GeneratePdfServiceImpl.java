@@ -29,7 +29,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private SipRepository sipRepository;
 	private MutualFundRepository mutualFundRepository;
 	
-	@Override
+
 	public void generateSummaryPdf() {
 		try (PDDocument document = new PDDocument()) {
 			drawSummaryPdf(document);
@@ -81,7 +81,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 	
-	@Override
+
 	public Map<String , String> calculateSummaryDetails(){
 		double total = 0.0;
 		List<FDs> fdsList = fdRepository.findAll();
@@ -113,7 +113,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return summaryData;
 	}
 	
-	@Override
+	
 	public void generateFdPdf() {
 		List<FDs> fdsList = fdRepository.findAll();
 		try (PDDocument document = new PDDocument()) {
@@ -163,7 +163,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 	
 	
-	@Override
+
 	public void generateElssPdf() {
 		
 		try (PDDocument document = new PDDocument()) {
@@ -284,6 +284,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			 page = new PDPage();
 				document.addPage(page);
 				yStart = 740f;
+				pdPageContentStream.close();
 			 pdPageContentStream = new PDPageContentStream(document, page);
 			}
 			float tableWidth = margin * 1.5f + margin * 3.5f + margin * 2f + margin * 3.5f;
@@ -301,24 +302,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			
 		}
 			pdPageContentStream.close();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		} catch (Exception e) {
+			throw new RuntimeException(e.getMessage());
 		}
 	}
 	
-	@Override
+
 	public void bankDetailsPdf() {
 		
 		
 		try (PDDocument document = new PDDocument()){
 			drawBankDetailsPdf(document);
 			saveFile(document,"Bank Details");
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		} catch (Exception e) {
+			throw new RuntimeException(e.getMessage());
 		}
 	}
 	
-	@Override
+
 	public void generateStocksPdf() {
 		try (PDDocument document = new PDDocument()){
 			drawStocksPdf(document);
@@ -365,7 +366,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 	
-	@Override
+
 	public void generateSipPdf() {
 		try (PDDocument document = new PDDocument()){
 			drawSipPdf(document);
@@ -434,7 +435,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 	
-	@Override
+
 	public void generateMfPdf() {
 		try (PDDocument document = new PDDocument()){
 			drawMfPdf(document);
@@ -503,7 +504,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 	
-	@Override
+
 	public void destructmodePdf() {
 		
 		try (PDDocument document = new PDDocument()){

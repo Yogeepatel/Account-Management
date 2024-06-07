@@ -1,11 +1,15 @@
 package com.yogi.account.Account.service;
 
 public interface FetchMfStocksService {
-	String addElssStatementData();
+	String addElssStatementData(String filename);
 	
-	void fetchStocksAndMfMetaData();
+	void readstocksCsvFile(String filename);
 	
-	void fetchStocksAndMfTransactionStatement();
+	void readMfCsvFile(String filename);
+	
+	void fetchStocksAndMfMetaData(String filename);
+	
+	void fetchStocksAndMfTransactionStatement(String filename);
 	
 	String saveSipandMf();
 	String saveAccountDetails();

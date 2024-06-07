@@ -12,6 +12,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -51,77 +52,100 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     @Autowired
     public Environment environment;
     
-    @Override
-    public void fetchSbiStatementData() {
+
+    public void fetchSbiStatementData(String filename ) {
         
         PDDocument document;
         PDDocument document2;
         String password = "SBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty(password));
             page4TableDataSbi = tabula.pdfTableReader(document, document.getNumberOfPages());
             page3TableDataSbi = tabula.pdfTableReaderWithRuling(document, document.getNumberOfPages() - 1);
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
-            document2 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/SBI.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty(password));
+            document2 = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty(password));
             
             page4TextSbi = pdfBox.read(document, document.getNumberOfPages(), false);
             page4TextSortedSbi = pdfBox.read(document2, document.getNumberOfPages(), true);
-        } catch (Exception e) {
-            throw new RuntimeException("Error Occuered while loading pdf " + e.getMessage());
+        }catch (InvalidPasswordException e) {
+            e.printStackTrace();
+            throw new RuntimeException("wrong File Uploaded for"+ "SBI Bank.");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error occurred while reading SBI statement pdf " + e.getMessage());
         }
         if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(page4TableDataSbi) || StringUtils.isBlank(page4TextSbi) || CollectionUtils.isEmpty(page3TableDataSbi)) {
-            throw new RuntimeException("Error Occuered while reading pdf ");
+            throw new RuntimeException("Error occurred while reading SBI statement pdf ");
         }
         
         
     }
     
-    @Override
-    public void fetchIciciStatementData() {
+
+    public void
+    fetchIciciStatementData(String tabularFileName, String nonTabularFileName) {
+        String password = "ICICI.password";
         try {
-            PDDocument pdDocument1 = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici2.pdf"));
-            page1TextIcici = pdfBox.read(pdDocument1, 1, false);
-            PDDocument document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici2.pdf"));
-            page2TextIcici = pdfBox.read(document, document.getNumberOfPages(), false);
-            PDDocument pdDocument = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici.pdf"));
-            int page = 2;
-            List<List<String>> dataList = tabula.pdfTableReader(pdDocument, 1);
-            while (page <= pdDocument.getNumberOfPages()) {
-                pdDocument = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/icici.pdf"));
-                List<List<String>> dataListTemp = tabula.pdfTableReader(pdDocument, page);
-                dataList.addAll(dataListTemp);
-                page = page +1;
+            
+            if(ObjectUtils.isNotEmpty(nonTabularFileName)) {
+                PDDocument pdDocument1 = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/" + nonTabularFileName), environment.getProperty(password));
+                page1TextIcici = pdfBox.read(pdDocument1, 1, false);
+                PDDocument document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/" + nonTabularFileName), environment.getProperty(password));
+                page2TextIcici = pdfBox.read(document, document.getNumberOfPages(), false);
             }
-            tabularIciciStatementdata = new ArrayList<>(dataList);
-        } catch (Exception e) {
-            throw new RuntimeException("Error Occurred while loading pdf " + e.getMessage());
+           
+            if(ObjectUtils.isNotEmpty(tabularFileName)) {
+                PDDocument pdDocument = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/" + tabularFileName),environment.getProperty(password));
+                int page = 2;
+                List<List<String>> dataList = tabula.pdfTableReader(pdDocument, 1);
+                while (page <= pdDocument.getNumberOfPages()) {
+                    pdDocument = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/" + tabularFileName));
+                    List<List<String>> dataListTemp = tabula.pdfTableReader(pdDocument, page);
+                    dataList.addAll(dataListTemp);
+                    page = page + 1;
+                }
+                tabularIciciStatementdata = new ArrayList<>(dataList);
+            }
+        }catch (InvalidPasswordException e) {
+            e.printStackTrace();
+            throw new RuntimeException("wrong File Uploaded for "+ "ICICI Bank.");
         }
-        if (ObjectUtils.isEmpty(tabularIciciStatementdata) || CollectionUtils.isEmpty(tabularIciciStatementdata) || StringUtils.isBlank(page2TextIcici) || StringUtils.isBlank(page1TextIcici)) {
-            throw new RuntimeException("Error Occurred while reading pdf ");
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error occurred while loading ICICI statement pdf " + e.getMessage());
+        }
+        if (ObjectUtils.isNotEmpty(tabularFileName) && (ObjectUtils.isEmpty(tabularIciciStatementdata) || CollectionUtils.isEmpty(tabularIciciStatementdata) )|| (ObjectUtils.isNotEmpty(nonTabularFileName) && (StringUtils.isBlank(page2TextIcici) || StringUtils.isBlank(page1TextIcici)))) {
+            
+            throw new RuntimeException("Error occurred while reading ICICI statement pdf ");
         }
     }
-	    
-	    @Override
-    public void fetchUbiStatementData() {
-        
+	   
+
+    public void fetchUbiStatementData(String filename) {
         
         PDDocument document = null;
         String password = "UBI.password";
         try {
-            document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/UBI.pdf"), environment.getProperty(password));
+            document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty(password));
             firstPageTableDataUbi = tabula.pdfTableReader(document, 1);
             lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
             textLastPageUbi = pdfBox.read(document, document.getNumberOfPages() - 1, true);
-        } catch (Exception e) {
-            throw new RuntimeException("Error Occuered while reading pdf " + e.getMessage());
+        }catch (InvalidPasswordException e) {
+            e.printStackTrace();
+            throw new RuntimeException("wrong File Uploaded for"+ "UBI Bank.");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error occurred while reading UBI statement pdf " + e.getMessage());
         }
         if (ObjectUtils.isEmpty(document) || CollectionUtils.isEmpty(firstPageTableDataUbi) || StringUtils.isBlank(textLastPageUbi) || CollectionUtils.isEmpty(lastPageTableDataUbi)) {
-            throw new RuntimeException("Error Occuered while reading pdf ");
+            throw new RuntimeException("Error occurred while reading UBI statement pdf");
         }
         
     }
     
-    @Override
+
     public String saveBankDetailsofUBI() {
         
         try {
@@ -161,9 +185,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                     .branch(bankDetailsMapperTable.get("branch name")).password(environment.getProperty(password))
                     .build();
             bankDetailsRepositiory.save(bankDetails);
-            return "Data Saved Successfully";
+            return "UBI bank details saved successfully";
         } catch (Exception e) {
-            return "Error Occured while saving data";
+            return "Error occurred while saving UBI bank details";
         }
         
     }
@@ -171,7 +195,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     
     
     
-    @Override
+
     public String saveBankDetailsofIcici() {
         String[] page1TextArray = page1TextIcici.split("\n");
         String fd = "";
@@ -227,9 +251,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                 .accountNumber(accountNumber).customerId(custId).micrCode(micr).build();
         bankDetailsRepositiory.save(bankDetails);
         
-        return "Data Saved Successfully";
+        return "ICICI bank details saved successfully";
     }
-    @Override
+
     public String saveBankDetailsofSBI() {
         
        
@@ -275,17 +299,30 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                         .build();
                 
                 bankDetailsRepositiory.save(bankDetails);
-                return "Data Saved Successfully";
+                return "SBI bank details saved successfully";
             
             } catch (Exception e) {
-                return "Error Occured while saving data";
+                return "Error occurred while saving SBI bank details";
             }
         
 
     }
     
+    private void sortDbData(){
+        List<FDs> fds =  fdRepository.findAll();
+        // Assuming fds is a list of objects with a getId() method that returns a String
+        fds.sort((obj1, obj2) -> {
+            int id1 = Integer.parseInt(obj1.getId());
+            int id2 = Integer.parseInt(obj2.getId());
+            return Integer.compare(id1, id2);
+        });
+        
+        fdRepository.deleteAll();
+        fdRepository.saveAll(fds);
+    }
     
-    @Override
+    
+
     public String collectFdDataofSBI()  {
 
         FDs fdObject = new FDs();
@@ -293,12 +330,10 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         Map<String, Integer> fdMapper = fdObject.fdMapper(page3TableDataSbi.get(0));
         Integer id;
         List<FDs> exisingfds = fdRepository.findAll();
-        if (exisingfds.isEmpty()) {
-            id = 0;
-        } else {
+         if (!exisingfds.isEmpty()) {
             for (int i = 0; i < exisingfds.size(); i++) {
                 if (exisingfds.get(i).getBankName().equals(AccountConstants.SBI)) {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+	                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
                     LocalDate date = LocalDate.parse(exisingfds.get(i).getMaturityDate(), formatter);
                     if (date.isBefore(LocalDate.now())) {
                         fdRepository.delete(exisingfds.get(i));
@@ -306,13 +341,17 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                     }
                 }
             }
-            id = exisingfds.size();
+            
+           
         }
-
-
-        for (int i = 1; i < page3TableDataSbi.size(); i++) {
+        exisingfds.sort(Comparator.comparing(FDs::getId));
+        int count =1 ;
+	    for (int i = 1; i < page3TableDataSbi.size(); i++) {
             boolean flag = false;
 	        for (FDs exisingfd : exisingfds) {
+                 if (count ==  Integer.parseInt(exisingfd.getId())){
+                    count = count+1;
+                }
 		        if (exisingfd.getNumber().equals(page3TableDataSbi.get(i).get(fdMapper.get("number")))) {
 			        flag = true;
 		        }
@@ -320,8 +359,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             if (flag) {
                 continue;
             }
-            id = id + 1;
-	        new FDs();
+            id = count;
 	        FDs fd = FDs.builder().id(id.toString()).bankName(AccountConstants.SBI).type(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.type.toString())))
                     .number(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.number.toString()))).accountOpenDate(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.accountOpenDate.toString())))
                     .maturityDate(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.maturityDate.toString()))).amount(page3TableDataSbi.get(i).get(fdMapper.get(FdEnums.amount.toString())))
@@ -329,16 +367,17 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
 
             fdRepository.save(fd);
             newfds = true;
-
+           
         }
+        sortDbData();
         if (newfds) {
-            return "FD Saved Successfully";
+            return "SBI FD's saved successfully";
         } else {
-            return "No New FD ";
+            return "No new SBI FD to save";
         }
     }
     
-    @Override
+
     public String collectFdDataofUBI()  {
         boolean newfds = false;
         Integer id;
@@ -347,8 +386,8 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             id = 0;
         } else {
             for (int i = 0; i < exisingfds.size(); i++) {
+                
                 if (exisingfds.get(i).getBankName().equals(AccountConstants.UBI)) {
-
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
                     LocalDate date = LocalDate.parse(exisingfds.get(i).getMaturityDate(), formatter);
                     if (date.isBefore(LocalDate.now())) {
@@ -357,13 +396,14 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                     }
                 }
             }
-            id = exisingfds.size();
         }
+        exisingfds.sort(Comparator.comparing(FDs::getId));
+        int count = 1;
+        
         String[] textLastPageArray = textLastPageUbi.split("\n");
         int j = 0;
-
-        String[] textSubArray = new String[0];
-        for (String s : textLastPageArray) {
+	    
+	    for (String s : textLastPageArray) {
             j = j + 1;
             if (s.trim().equalsIgnoreCase("LINKED DEPOSITS")) {
                 break;
@@ -377,50 +417,60 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             }
             boolean flag = false;
             for (int fd = 0; fd < exisingfds.size(); fd++) {
-                if (exisingfds.get(fd).getNumber().equals(data[2])) {
+                
+                FDs exisingfd = exisingfds.get(fd);
+                if (count ==  Integer.parseInt(exisingfd.getId())){
+                    count = count+1;
+                    
+                }
+                if (exisingfd.getNumber().equals(data[2])) {
+                    
                     flag = true;
                 }
             }
             if (flag) {
                 continue;
             }
-            id = id + 1;
+            id =count;
             FDs fd = FDs.builder().id(id.toString()).bankName(AccountConstants.UBI).type(data[1])
                     .number(data[2]).accountOpenDate(data[3])
                     .maturityDate(data[4]).amount(data[6])
                     .Roi(data[5]).build();
 
             fdRepository.save(fd);
-            newfds = true;
-        }
+            count = count + 1;
 
+            newfds = true;
+            
+        }
+    sortDbData();
         if (newfds) {
-            return "FD Saved Successfully";
+            return "UBI FD's saved successfully";
         } else {
-            return "No New FD ";
+            return "No new UBI FD to save";
         }
     }
     
-    @Override
-    public String expenditureDataofSBI() {
-        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.SBI,month).isEmpty()) {
-            return "Expenditure Details already Saved";
+
+    public String expenditureDataofSBI(String monthSelected) {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.SBI,monthSelected).isEmpty()) {
+            return "SBI expenditure details already Saved";
         }
         String newText = page4TextSbi.split("TRANSACTION OVERVIEW")[1];
         String[] texts = newText.split("\n");
-        SalaryUsage salaryUsage = salaryUsageRepository.findById(month).orElseThrow();
+        SalaryUsage salaryUsage = salaryUsageRepository.findById(monthSelected).orElseThrow();
         Double openingBalance = Double.parseDouble(texts[1].split(":")[1]) +salaryUsage.getSecurity();
         Double closingBalance = Double.parseDouble(texts[2].split(":")[1]);
-        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.SBI).month(String.valueOf(month))
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.SBI).month(monthSelected)
                 .closingBalance(closingBalance).openingBalance(openingBalance).expenditureFromAccount(openingBalance-closingBalance).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
-        return "Expenditure Data Saved Successfully";
+        return "Expenditure data of SBI saved successfully";
     }
     
-    @Override
-    public String expenditureDataofUBI() {
-        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.UBI,month).isEmpty()) {
-            return "Expenditure Details already Saved";
+
+    public String expenditureDataofUBI(String monthSelected) {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.UBI,monthSelected).isEmpty()) {
+            return "UBI expenditure details already Saved";
         }
         String openingBalance = "";
         String closingBalance = "";
@@ -435,35 +485,35 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             }
         }
         
-        SalaryUsage salaryUsage = salaryUsageRepository.findById(month).orElseThrow();
+        SalaryUsage salaryUsage = salaryUsageRepository.findById(monthSelected).orElseThrow();
         Double openingBalancewithAddedMoney = Double.parseDouble(openingBalance.replace(",","")) + salaryUsage.getSelf();
         Double closingBalanceDouble = Double.parseDouble(closingBalance.replace(",","")) ;
-        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.UBI).month(String.valueOf(month))
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.UBI).month(monthSelected)
                 .closingBalance(closingBalanceDouble).openingBalance(openingBalancewithAddedMoney).expenditureFromAccount((openingBalancewithAddedMoney-closingBalanceDouble)).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
-        return "Expenditure Data Saved Successfully";
+        return "Expenditure data of UBI saved successfully";
     }
     
-    @Override
-    public String expenditureDataofIcici() {
-        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.ICICI,month).isEmpty()) {
-            return "Expenditure Details already Saved";
+    
+    public String expenditureDataofIcici(String monthSelected) {
+        if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.ICICI,monthSelected).isEmpty()) {
+            return "ICICI expenditure details already Saved";
         }
        if (ObjectUtils.isEmpty(tabularIciciStatementdata)){
-           return ("Tabulated statement pdf Required");
+           return ("Tabulated ICICI statement pdf Required");
        }
        int val =  page1TextIcici.indexOf("B/F");
         String openingAmountString = page1TextIcici.substring(val+4,val+13);
        Double openingAmount = Double.parseDouble(openingAmountString.trim().replace(",",""));
        Double salaryUsed =totalSalaryUsed(getSalaryMap());
         Double closingAmount = openingAmount - salaryUsed;
-        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.ICICI).month(String.valueOf(month))
+        AccountExpenditure bankAccountExpenditure = AccountExpenditure.builder().id(AccountConstants.ICICI).month(monthSelected)
                 .closingBalance(closingAmount).openingBalance(openingAmount).expenditureFromAccount(salaryUsed).build();
         bankAccountExpenditureRepositiory.save(bankAccountExpenditure);
-        return "Expenditure Data Saved Successfully";
+        return "Expenditure data of ICICI saved successfully";
     }
-    @Override
-    public String salaryUsage() {
+    
+    public String salaryUsage(String month) {
         List<String> expenditureFields = new ArrayList<>(List.of("Self" , "Dad","Mom","Brother","Fd","Mf","Stocks","security","Others"));
         Map<String, Integer> expenditureFieldsValues =getSalaryMap();
             SalaryUsage salaryUsage = SalaryUsage.builder().id(month).self(expenditureFieldsValues.get(expenditureFields.get(0)))
@@ -529,7 +579,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                     expenditureFieldsValues.put(expenditureFields.get(8),updatedValue);
                 }
             });
-            expenditureFieldsValues.put(expenditureFields.get(4), fdRepository.findAll().stream().filter(fd -> LocalDate.now().minusMonths(1).getMonthValue() ==  Integer.parseInt(fd.getAccountOpenDate().split("-")[1])).map(fd -> Integer.parseInt(fd.getAmount())).reduce(0,Integer::sum));
+            expenditureFieldsValues.put(expenditureFields.get(4), fdRepository.findAll().stream().filter(fd -> LocalDate.now().minusMonths(1).getMonthValue() ==  Integer.parseInt(fd.getAccountOpenDate().split("-")[1])).map(fd -> (int)Double.parseDouble(fd.getAmount().replace(",",""))).reduce(0,Integer::sum));
             return expenditureFieldsValues;
         
         }
@@ -541,7 +591,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
             return totalAmount;
         }
         
-        @Override
+        
         public String yearlyExpenditure(){
             List<YearlyExpenditure> yearlyExpendituresaved = yearlyExpenditureRepository.findAll();
             List<String> savedMonths =yearlyExpendituresaved.stream().map(YearlyExpenditure::getId).toList();

@@ -1,4 +1,4 @@
-package com.yogi.account.Account.entity;
+package com.yogi.account.Account.dto;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
