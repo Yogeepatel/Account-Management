@@ -6,7 +6,6 @@ import com.yogi.account.Account.pdfManipulation.CustomPdfBox;
 import com.yogi.account.Account.pdfManipulation.Tabula;
 import com.yogi.account.Account.repository.*;
 import com.yogi.account.Account.service.FetchMfStocksService;
-import com.yogi.account.Account.utils.AccountUtils;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,8 +39,11 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	public static Map<String, List<?>> mfFromPdf = new HashMap<>();
 	public static Map<String, List<?>> stocksFromPdf = new LinkedHashMap<>();
 	
-	@Override
-	public String addElssStatementData() {
+	public static  Map<String, List<?>> holdingsCsvStocksData =  new HashMap<>();
+	public static  Map<String, List<?>> holdingsCsvMfData =  new HashMap<>();
+	
+
+	public String addElssStatementData(String filename) {
 		try {
 			int count = 0;
 			List<ELSS> retrievedData = elssRepository.findAll();
@@ -50,7 +52,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				count = retrievedData.size();
 			}
 			
-			PDDocument document = Loader.loadPDF(ResourceUtils.getFile("classpath:UplodedFiles/ELSS.pdf"));
+			PDDocument document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename));
 			
 			List<List<String>> result = tabula.pdfPartialTableReader(document, 1);
 			
@@ -62,22 +64,41 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 					elssRepository.save(elss);
 				}
 			}
-			return "Data Saved Successfully";
+			return "ELSS Statement data saved successfully";
 			
 		} catch (Exception e) {
-			return "Error Occuered while reading pdf " + e.getMessage();
+			return "Error occurred while reading ELSS pdf " + e.getMessage();
 		}
 		
 	}
 	
-	@Override
-	public void fetchStocksAndMfMetaData() {
+	
+
+	public void readstocksCsvFile(String filename){
+		try{
+			FileInputStream file = new FileInputStream(new File("src/main/resources/UploadedFiles/"+filename));
+			holdingsCsvStocksData  = ExcelReader.readExcel(file, 0);
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+	
+
+	public void readMfCsvFile(String filename){
+		try{
+			FileInputStream file = new FileInputStream(new File("src/main/resources/UploadedFiles/"+filename));
+			holdingsCsvMfData  = ExcelReader.readExcel(file, 1);
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+
+	public void fetchStocksAndMfMetaData(String filename) {
 		PDDocument document;
 		try {
-			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
-			
+			document =Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty("pan"));
 			List<String> stocksMfDataPdfPage2 = customPdfBox.fetchDocumentText(document, 2, 2);
-			
+
 			int i = 0;
 			for (int j = 0; j < stocksMfDataPdfPage2.size() - 3; j++) {
 				String data = stocksMfDataPdfPage2.get(j);
@@ -114,20 +135,21 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 			
 			
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(e.getMessage());
 		}
 		
 	}
 	
-	@Override
-	public  void fetchStocksAndMfTransactionStatement() {
+
+	public  void fetchStocksAndMfTransactionStatement(String filename) {
 		PDDocument document;
 		try {
-			document = AccountUtils.copyDocument("classpath:UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
-			List<String> StocksMfTransactionStatment = customPdfBox.fetchDocumentText(document, 1, 1);
+			document =  Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/" +filename), environment.getProperty("pan"));
+			
+			List<String> stocksMfTransactionStatment = customPdfBox.fetchDocumentText(document, 1, 1);
 			int i = 0;
-			int index = StocksMfTransactionStatment.indexOf("TRANSACTION WITH HOLDING STATEMENT") + 1;
-			String data = StocksMfTransactionStatment.get(index);
+			int index = stocksMfTransactionStatment.indexOf("TRANSACTION WITH HOLDING STATEMENT") + 1;
+			String data = stocksMfTransactionStatment.get(index);
 			String key = "";
 			String details = "";
 			String[] dataArray = data.substring(4).split("\n");
@@ -148,7 +170,6 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 						accountDetails.put(key, details);
 						i= i+2;
 					}
-//
 				} else {
 					
 					details="";
@@ -159,16 +180,19 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 					}
 					details = StringUtils.join(details, dataArray[i]);
 					accountDetails.put("Address: ", details);
-					
 					i = i + 1;
 					}
-				key = "";
-				details = "";
 				
+			}
+			int statementDataIndex = -1;
+			for(int x =0 ; x<stocksMfTransactionStatment.size();x++){
+				if(stocksMfTransactionStatment.get(x).contains("Statement of Account from")){
+					statementDataIndex = x;
 				}
-			int statementDataIndex = StocksMfTransactionStatment.lastIndexOf("Statement of Account from 2024-03-01 to 2024-03-31:");
+			}
 			
-			List<String> statementDataList = StocksMfTransactionStatment.subList(statementDataIndex + 2, StocksMfTransactionStatment.size()).stream().filter(val -> val.contains(":")).toList();
+			
+			List<String> statementDataList = stocksMfTransactionStatment.subList(statementDataIndex + 2, stocksMfTransactionStatment.size()).stream().filter(val -> val.contains(":")).toList();
 			i = 0;
 			key = "";
 			Map<String, String> temp = new HashMap<>();
@@ -190,19 +214,15 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				}
 				i = (i + 1) % 3;
 			}
-			
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(e.getMessage());
 		}
 		
 	}
 	
-	@Override
+
 	public String saveSipandMf() {
-		try {
-			FileInputStream file = new FileInputStream(ResourceUtils.getFile("classpath:UplodedFiles/holdings.xlsx"));
-			Map<String, List<?>> mfMetadataExel = ExcelReader.readExcel(file, 1);
-			mfMetadataExel.forEach((key, value) -> {
+		holdingsCsvMfData.forEach((key, value) -> {
 				if (mfFromPdf.containsKey(value.get(0))&& Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)) != 0.0){
 					if ( ObjectUtils.isNotEmpty(mfFromPdf.get(value.get(0)) )&& elssRepository.existByUnits( Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))).getUnits() == Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))) {
 						ELSS elssData = elssRepository.existByUnits(Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)));
@@ -211,6 +231,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 						elssRepository.save(elssData);
 					}
 				}
+				
 				else if (sipDeatils.containsKey(value.get(0))) {
 						if (Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Closing balance:")) - Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Opening balance:") )>0)
 							if (ObjectUtils.isEmpty(sipRepository.findById(String.valueOf(value.get(0))))) {
@@ -245,12 +266,12 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				
 			});
 			return "All Mutual Funds and SIP details updated and saved";
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+		
 	}
 	
-	@Override
+	
+	
+
 	public String saveAccountDetails() {
 		
 		List<String> mapKeys = accountDetails.keySet().stream().toList();
@@ -263,22 +284,19 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				.boStatus(accountDetails.get(mapKeys.get(3))!= null?accountDetails.get(mapKeys.get(3)) :savedAccount.getBoStatus()).panNumber(accountDetails.get(mapKeys.get(10))!= null?accountDetails.get(mapKeys.get(10)) :savedAccount.getPanNumber())
 				.customerId(accountDetails.get(mapKeys.get(1))!= null?accountDetails.get(mapKeys.get(1)) :savedAccount.getCustomerId()).dpId(accountDetails.get(mapKeys.get(11))!= null?accountDetails.get(mapKeys.get(11)) :savedAccount.getDpId())
 				.password(accountDetails.get(mapKeys.get(10)) != null?accountDetails.get(mapKeys.get(10)) :savedAccount.getPanNumber()).address(address!=null?address :savedAccount.getAddress()).build();
-		
 		bankDetailsRepositiory.save(accountDetail);
 		return "Account details updated";
 	}
 	
-	@Override
+
 	public String saveStocks(){
-		try {
-			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/holdings.xlsx"));
-			
-			Map<String, List<?>> stocksDataFromExcel  = ExcelReader.readExcel(file, 0);
-			stocksDataFromExcel.forEach((key,value) ->{
+		
+		holdingsCsvStocksData.forEach((key,value) ->{
 				if (stocksFromPdf.containsKey(value.get(0))){
 					List stockDatalist = stocksFromPdf.get(value.get(0));
 					Optional<Stocks> stocksData= stocksRepository.findById(String.valueOf(value.get(0)));
 					if (stocksData.isPresent() && stocksData.get().getCurrentBalance() != Double.parseDouble((String) stockDatalist.get(2))){
+						
 						stocksData.get().setCurrentBalance(Double.parseDouble((String) stockDatalist.get(2)));
 						stocksRepository.updateUnits(String.valueOf(value.get(0)),Double.parseDouble((String) stockDatalist.get(1)));
 						
@@ -290,9 +308,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				}
 			});
 		return "Stocks data updated and saved.";
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+		
 		
 	}
 }

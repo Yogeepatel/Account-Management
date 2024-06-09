@@ -1,15 +1,16 @@
 package com.yogi.account.Account.service;
 
 public interface FetchBankDataService {
-    void fetchSbiStatementData() ;
-
-    void fetchUbiStatementData() ;
+    void fetchSbiStatementData(String filename) ;
+	
+	void fetchIciciStatementData(String tabularFileName, String nonTabularFileName);
+	
+	void fetchUbiStatementData(String filename) ;
     
     String saveBankDetailsofUBI();
 	
 	String saveBankDetailsofIcici();
 	
-	void fetchIciciStatementData();
 	
 	String saveBankDetailsofSBI();
     
@@ -17,13 +18,13 @@ public interface FetchBankDataService {
     
     String collectFdDataofUBI() ;
     
-    String expenditureDataofSBI();
+    String expenditureDataofSBI(String monthSelected);
     
-    String expenditureDataofUBI();
+    String expenditureDataofUBI(String monthSelected);
 	
-	String expenditureDataofIcici();
+	String expenditureDataofIcici(String monthSelected);
 	
-	String salaryUsage();
+	String salaryUsage(String month);
 	
 	String yearlyExpenditure();
 }

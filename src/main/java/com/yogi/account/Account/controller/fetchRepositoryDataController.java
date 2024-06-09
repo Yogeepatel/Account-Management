@@ -38,7 +38,8 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/stocks/{pageNumber}")
 	public Page<Stocks> getStocksData (@PathVariable int pageNumber)   {
-		Pageable pageable = PageRequest.of(pageNumber,2);
+		Pageable pageable = PageRequest.of(pageNumber,10
+		);
 		return stocksRepository.findAll(pageable);
 	}
 	
@@ -50,7 +51,7 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/mutualfund/{pageNumber}")
 	public Page<MutualFund> getMfData (@PathVariable int pageNumber)   {
-		Pageable pageable = PageRequest.of(pageNumber,1);
+		Pageable pageable = PageRequest.of(pageNumber,10);
 		return mutualFundRepository.findAll(pageable);
 	}
 	
@@ -86,4 +87,6 @@ public class fetchRepositoryDataController {
 	public SalaryUsage salaryUsage (@PathVariable String month)   {
 		return salaryUsageRepository.findById(month).orElseThrow(() -> new RuntimeException(" Data not Found"));
 	}
+	
+	
 }
