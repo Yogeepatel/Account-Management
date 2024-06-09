@@ -45,7 +45,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		try {
 			int count = 0;
 			List<ELSS> retrievedData = elssRepository.findAll();
-			List<String> folioNos = retrievedData.stream().map(ELSS::getFolio_number).toList();
+			List<String> folioNos = retrievedData.stream().map(ELSS::getFolioNumber).toList();
 			if (!ObjectUtils.isEmpty(retrievedData)) {
 				count = retrievedData.size();
 			}
@@ -57,8 +57,8 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 			for (int i = 1; i < result.size(); i++) {
 				if (!folioNos.contains(result.get(i).get(1))) {
 					ELSS elss = ELSS.builder().id(Integer.toString(i + count)).amount(result.get(i).get(4))
-							.units(Double.parseDouble(result.get(i).get(3))).folio_number(result.get(i).get(1))
-							.name_of_fund(result.get(i).get(2)).purchase_Date(result.get(i).get(0)).build();
+							.units(Double.parseDouble(result.get(i).get(3))).folioNumber(result.get(i).get(1))
+							.nameOfFund(result.get(i).get(2)).purchaseDate(result.get(i).get(0)).build();
 					elssRepository.save(elss);
 				}
 			}
@@ -74,7 +74,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	public void fetchStocksAndMfMetaData() {
 		PDDocument document;
 		try {
-			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/transaction-with-holding-statement_YCS402-1208160126402956 (2).pdf", environment.getProperty("zerodha.password"));
+			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
 			
 			List<String> stocksMfDataPdfPage2 = customPdfBox.fetchDocumentText(document, 2, 2);
 			
@@ -120,38 +120,52 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	}
 	
 	@Override
-	public void fetchStocksAndMfTransactionStatement() {
+	public  void fetchStocksAndMfTransactionStatement() {
 		PDDocument document;
 		try {
-			document = AccountUtils.copyDocument("src/main/resources/UplodedFiles/Holding transaction Statement", environment.getProperty("zerodha.password"));
+			document = AccountUtils.copyDocument("classpath:UplodedFiles/Holding transaction Statement.pdf", environment.getProperty("pan"));
 			List<String> StocksMfTransactionStatment = customPdfBox.fetchDocumentText(document, 1, 1);
 			int i = 0;
 			int index = StocksMfTransactionStatment.indexOf("TRANSACTION WITH HOLDING STATEMENT") + 1;
 			String data = StocksMfTransactionStatment.get(index);
 			String key = "";
 			String details = "";
-			for (String cell : data.substring(4).split("\n")) {
-				if (i == 0 && !cell.contains(":")) {
-					accountDetails.putIfAbsent("Address: ", details);
-					details = accountDetails.get("Address: ");
-					details = StringUtils.join(details, cell);
-					accountDetails.put("Address: ", details);
-					details = "";
-					i = i + 1;
-				} else {
-					if (cell.contains(":")) {
-						key = cell;
-						i = i + 1;
-					} else {
-						details = cell;
+			String[] dataArray = data.substring(4).split("\n");
+			while(i< dataArray.length){
+				
+				if (dataArray[i].contains(":")) {
+					
+					if(dataArray[i].split(":").length > 1) {
+						key = dataArray[i].split(":")[0];
+						details = dataArray[i].split(":")[1];
 						accountDetails.put(key, details);
-						i = 0;
-						key = "";
-						details = "";
+						i=i+1;
 					}
+
+					else{
+						key = dataArray[i];
+						details = dataArray[i + 1];
+						accountDetails.put(key, details);
+						i= i+2;
+					}
+//
+				} else {
+					
+					details="";
+					
+					details =accountDetails.putIfAbsent("Address: ", details);
+					if(ObjectUtils.isNotEmpty(details) && details.equals(dataArray[i])) {
+						continue;
+					}
+					details = StringUtils.join(details, dataArray[i]);
+					accountDetails.put("Address: ", details);
+					
+					i = i + 1;
+					}
+				key = "";
+				details = "";
+				
 				}
-			}
-			
 			int statementDataIndex = StocksMfTransactionStatment.lastIndexOf("Statement of Account from 2024-03-01 to 2024-03-31:");
 			
 			List<String> statementDataList = StocksMfTransactionStatment.subList(statementDataIndex + 2, StocksMfTransactionStatment.size()).stream().filter(val -> val.contains(":")).toList();
@@ -171,6 +185,7 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				}
 				if (i == 2) {
 					sipDeatils.put(key, temp);
+					
 					temp = new HashMap<>();
 				}
 				i = (i + 1) % 3;
@@ -182,14 +197,11 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		
 	}
 	
-	
 	@Override
 	public String saveSipandMf() {
 		try {
-			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/Holdings Excel.xlsx"));
+			FileInputStream file = new FileInputStream(ResourceUtils.getFile("classpath:UplodedFiles/holdings.xlsx"));
 			Map<String, List<?>> mfMetadataExel = ExcelReader.readExcel(file, 1);
-			fetchStocksAndMfMetaData();
-			fetchStocksAndMfTransactionStatement();
 			mfMetadataExel.forEach((key, value) -> {
 				if (mfFromPdf.containsKey(value.get(0))&& Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3)) != 0.0){
 					if ( ObjectUtils.isNotEmpty(mfFromPdf.get(value.get(0)) )&& elssRepository.existByUnits( Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))).getUnits() == Double.parseDouble((String) mfFromPdf.get(value.get(0)).get(3))) {
@@ -240,28 +252,17 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	
 	@Override
 	public String saveAccountDetails() {
-		fetchStocksAndMfTransactionStatement();
 		
 		List<String> mapKeys = accountDetails.keySet().stream().toList();
-		String[] addressArray = accountDetails.get(mapKeys.get(6)).split(" ");
-		String name="";
-		String address="";
-		int index=0;
-		for(String add: addressArray) {
-			if (index < 4){
-				name = StringUtils.join(name, " ", add);
-			index = index + 1;
-		}
-			else {
-				address = StringUtils.join(address," ",add);
-			}
-			
-		}
-		BankDetails accountDetail = BankDetails.builder().name(name.substring(1)).accountNumber(accountDetails.get(mapKeys.get(5)))
-				.account_Status(accountDetails.get(accountDetails.get(mapKeys.get(7)))).id("Zerodha")
-				.bo_Status(accountDetails.get(mapKeys.get(7))).pan_Number(accountDetails.get(mapKeys.get(9)))
-				.customerId(accountDetails.get(mapKeys.get(1))).dp_Id(accountDetails.get(mapKeys.get(10)))
-				.password(accountDetails.get(mapKeys.get(9))).address(address.substring(1)).build();
+		String address = StringUtils.join(accountDetails.get(mapKeys.get(9)).split("Patel")[1],accountDetails.get(mapKeys.get(6)).split("PATEL")[1]);
+		String name=accountDetails.get(mapKeys.get(6)).split("PATEL")[0] + "PATEL";
+		BankDetails savedAccount = bankDetailsRepositiory.findAll().stream().filter(account -> !account.equals("Zerodha")).findFirst().orElseThrow();
+		
+		BankDetails accountDetail   = BankDetails.builder().name(name.substring(1)).accountNumber(accountDetails.get(mapKeys.get(5)) != null?accountDetails.get(mapKeys.get(5)) :savedAccount.getAccountNumber())
+				.accountStatus(accountDetails.get(mapKeys.get(4))!= null?accountDetails.get(mapKeys.get(4)) :savedAccount.getAccountStatus()).id("Zerodha")
+				.boStatus(accountDetails.get(mapKeys.get(3))!= null?accountDetails.get(mapKeys.get(3)) :savedAccount.getBoStatus()).panNumber(accountDetails.get(mapKeys.get(10))!= null?accountDetails.get(mapKeys.get(10)) :savedAccount.getPanNumber())
+				.customerId(accountDetails.get(mapKeys.get(1))!= null?accountDetails.get(mapKeys.get(1)) :savedAccount.getCustomerId()).dpId(accountDetails.get(mapKeys.get(11))!= null?accountDetails.get(mapKeys.get(11)) :savedAccount.getDpId())
+				.password(accountDetails.get(mapKeys.get(10)) != null?accountDetails.get(mapKeys.get(10)) :savedAccount.getPanNumber()).address(address!=null?address :savedAccount.getAddress()).build();
 		
 		bankDetailsRepositiory.save(accountDetail);
 		return "Account details updated";
@@ -272,8 +273,6 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 		try {
 			FileInputStream file = new FileInputStream(new File("src/main/resources/UplodedFiles/holdings.xlsx"));
 			
-			fetchStocksAndMfMetaData();
-			fetchStocksAndMfTransactionStatement();
 			Map<String, List<?>> stocksDataFromExcel  = ExcelReader.readExcel(file, 0);
 			stocksDataFromExcel.forEach((key,value) ->{
 				if (stocksFromPdf.containsKey(value.get(0))){

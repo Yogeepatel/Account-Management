@@ -81,7 +81,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 	
-	private Map<String , String> calculateSummaryDetails(){
+	@Override
+	public Map<String , String> calculateSummaryDetails(){
 		double total = 0.0;
 		List<FDs> fdsList = fdRepository.findAll();
 		Map<String , String>  summaryData = new HashMap<>();
@@ -190,7 +191,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String[][] headerData = {{"S.No.", "Folio Number", "Name of Fund", "Units", "Purchase Date", "Amount"}};
 			int i = 0;
 			for (ELSS elss : elssList) {
-				String[] datatemp = {StringUtils.join(elss.getId()) ,elss.getFolio_number(), StringUtils.join(elss.getName_of_fund().trim().split("-")[0].split("TAX")[0],"\n","TAX SAVER FUND"), String.valueOf(elss.getUnits()), elss.getPurchase_Date(), elss.getAmount()};
+				String[] datatemp = {StringUtils.join(elss.getId()) ,elss.getFolioNumber(), StringUtils.join(elss.getNameOfFund().trim().split("-")[0].split("TAX")[0],"\n","TAX SAVER FUND"), String.valueOf(elss.getUnits()), elss.getPurchaseDate(), elss.getAmount()};
 				data[i] = datatemp;
 				i = i + 1;
 			}
@@ -249,30 +250,27 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			if (!StringUtils.isBlank(bankDetails.getMicrCode())) {
 				text.put(headerData[4], bankDetails.getMicrCode());
 			}
-			if (!StringUtils.isBlank(bankDetails.getBo_Status())) {
-				text.put(headerData[8], bankDetails.getBo_Status());
+			if (!StringUtils.isBlank(bankDetails.getBoStatus())) {
+				text.put(headerData[8], bankDetails.getBoStatus());
 				
 			}
 			if (!StringUtils.isBlank(bankDetails.getCustomerId())) {
 				text.put(headerData[5], bankDetails.getCustomerId());
 			}
-			if (!StringUtils.isBlank(bankDetails.getDp_Id())) {
-				text.put(headerData[7], bankDetails.getDp_Id());
+			if (!StringUtils.isBlank(bankDetails.getDpId())) {
+				text.put(headerData[7], bankDetails.getDpId());
 				
 			}
-			if (!StringUtils.isBlank(bankDetails.getPan_Number())) {
-				text.put(headerData[6], bankDetails.getPan_Number());
+			if (!StringUtils.isBlank(bankDetails.getPanNumber())) {
+				text.put(headerData[6], bankDetails.getPanNumber());
 			}
-				if (!StringUtils.isBlank(bankDetails.getBo_Status())) {
-				text.put(headerData[8], bankDetails.getBo_Status());
+				if (!StringUtils.isBlank(bankDetails.getBoStatus())) {
+				text.put(headerData[8], bankDetails.getBoStatus());
 				
 			}
-			if (!StringUtils.isBlank(bankDetails.getAccount_Status())) {
-				text.put(headerData[9], bankDetails.getAccount_Status());
-				
+			if (!StringUtils.isBlank(bankDetails.getAccountStatus())) {
+				text.put(headerData[9], bankDetails.getAccountStatus());
 			}
-			System.out.println(bankDetails.getAddress());
-			
 			String address ="";
 			for(String temp:bankDetails.getAddress().split(" ") ){
 				if(!address.contains(temp)){

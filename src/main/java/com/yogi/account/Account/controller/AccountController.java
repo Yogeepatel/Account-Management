@@ -6,10 +6,12 @@ import com.yogi.account.Account.service.FetchMfStocksService;
 import com.yogi.account.Account.service.GeneratePdfService;
 import com.yogi.account.Account.service.PasswordService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,8 @@ import java.nio.file.Files;
 
 
 @AllArgsConstructor
+@CrossOrigin
+@Slf4j
 @RestController
 public class AccountController {
 	private GeneratePdfService generatePdfService;
@@ -26,14 +30,13 @@ public class AccountController {
 	private FetchBankDataService fetchBankDataService;
 	private PasswordService passwordService;
 	
-	
-	@GetMapping("/login")
+	@PostMapping("/login")
 	public String login(@RequestBody LoginDto loginDto) {
 		return passwordService.login(loginDto.getUsername(), loginDto.getPassword());
 	}
 	
 	@GetMapping("/key/{key}")
-	public String validateKey(@PathVariable String key) {
+	public String validateKey(@PathVariable int key) {
 		return passwordService.validateKey(key);
 	}
 	
@@ -83,26 +86,34 @@ public class AccountController {
 	
 	
 	/* Endpoint for saving bank details and monthly expenditure and FDs*/
-	@GetMapping("/updatebankdetails")
-	public String addStatementDetails(@RequestParam String task)   {
-		fetchBankDataService.fetchSbiStatementData();fetchBankDataService.fetchUbiStatementData();
-		return StringUtils.join(
-		fetchBankDataService.collectFdDataofUBI(),
-		fetchBankDataService.collectFdDataofSBI(),
-		fetchBankDataService.ExpenditureDataofSBI(),
-		fetchBankDataService.ExpenditureDataofUBI(),
-		fetchBankDataService.saveBankDetailsofSBI(),
-		fetchBankDataService.saveBankDetailsofUBI());
+	@Transactional
+	@GetMapping("/bulkupdate/bankdata")
+	public String addStatementDetails()   {
+		fetchBankDataService.fetchSbiStatementData();
+		fetchBankDataService.fetchUbiStatementData();
+		fetchBankDataService.fetchIciciStatementData();
+		return  StringUtils.join(
+					 fetchBankDataService.salaryUsage(),"\n",
+					fetchBankDataService.collectFdDataofUBI(), '\n',
+					fetchBankDataService.collectFdDataofSBI(), '\n',
+					fetchBankDataService.expenditureDataofSBI(), '\n',
+					fetchBankDataService.expenditureDataofUBI(), '\n',
+					fetchBankDataService.saveBankDetailsofSBI(), '\n',
+					fetchBankDataService.saveBankDetailsofUBI(), "\n",
+					fetchBankDataService.saveBankDetailsofIcici()+ "\n",
+				fetchBankDataService.expenditureDataofIcici()+ "\n",
+				fetchBankDataService.yearlyExpenditure());
+			 
 	}
-	
-	@GetMapping("/updateStocksDetails")
-	public String addMfandStocksDetails(@RequestParam String task)   {
+	@Transactional
+	@GetMapping("/bulkupdate/mfstocksdata")
+	public String addMfandStocksDetails()   {
 		fetchMfStocksService.fetchStocksAndMfTransactionStatement();
 		fetchMfStocksService.fetchStocksAndMfMetaData();
-		return StringUtils.join(
-				fetchMfStocksService.saveStocks(),
-				fetchMfStocksService.saveSipandMf(),
-				fetchMfStocksService.saveAccountDetails(),
-				fetchMfStocksService.addElssStatementData());
+		return StringUtils.join(fetchMfStocksService.addElssStatementData(),'\n',
+				fetchMfStocksService.saveStocks(),'\n',
+				fetchMfStocksService.saveSipandMf(),'\n',
+				fetchMfStocksService.saveAccountDetails()
+				);
 	}
 }

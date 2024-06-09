@@ -21,7 +21,6 @@ public class PdfBox {
             document.close();
             return text;
         } catch (RuntimeException | IOException e) {
-            System.out.println("Exception occured"  + e.getMessage());
            return "Exception occured"  + e.getMessage();
         }
     }

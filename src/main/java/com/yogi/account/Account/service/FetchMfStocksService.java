@@ -6,6 +6,7 @@ public interface FetchMfStocksService {
 	void fetchStocksAndMfMetaData();
 	
 	void fetchStocksAndMfTransactionStatement();
+	
 	String saveSipandMf();
 	String saveAccountDetails();
 	

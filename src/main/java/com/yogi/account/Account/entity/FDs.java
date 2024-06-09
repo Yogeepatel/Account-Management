@@ -1,6 +1,7 @@
 package com.yogi.account.Account.entity;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
@@ -9,23 +10,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 @NoArgsConstructor
 @Document(collection = "FDs")
 public class FDs {
 
     @MongoId
-    private String id;
-    private String type;
-    private String number;
-    private String amount;
-    private String accountOpenDate;
-    private String Roi;
-    private String bankName;
-    private String maturityDate;
+     String id;
+     String type;
+     String number;
+     String amount;
+     String accountOpenDate;
+     String Roi;
+     String bankName;
+     String maturityDate;
 
     public List<String> fdTableList() {
         List<String> fdTableFormat = new ArrayList<>();
