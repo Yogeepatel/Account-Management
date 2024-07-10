@@ -94,6 +94,7 @@ public class AccountController {
 			throw new RuntimeException("Invalid File");
 		try (FileOutputStream fileOutputStream = new FileOutputStream( "src/main/resources/UploadedFiles/"+type +"/"+ LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy  ")) +file.getOriginalFilename())
 		){
+			System.out.println("abc");
 						fileOutputStream.write(file.getBytes());
 			
 			

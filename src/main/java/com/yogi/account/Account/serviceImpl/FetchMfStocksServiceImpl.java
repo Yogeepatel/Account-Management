@@ -233,8 +233,9 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 				}
 				
 				else if (sipDeatils.containsKey(value.get(0))) {
-						if (Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Closing balance:")) - Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Opening balance:") )>0)
+					if (Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Closing balance:")) - Double.parseDouble(sipDeatils.get(String.valueOf(value.get(0))).get("Opening balance:") )>0)
 							if (ObjectUtils.isEmpty(sipRepository.findById(String.valueOf(value.get(0))))) {
+								System.out.println("inside if");
 							Map<String, String> sipdata = sipDeatils.get(value.get(0));
 							List<?> pdfData = mfFromPdf.get(value.get(0));
 							
@@ -265,6 +266,15 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 					}
 				
 			});
+		
+		List<Sip> sipList = sipRepository.findAll();
+		for (Sip sip : sipList){
+			if(!sipDeatils.containsKey(sip.getId())){
+				mutualFundRepository.save(MutualFund.builder().fundType(sip.getFundType()).id(sip.getId()).mutualFundName(sip.getSipName()).companyName(sip.getCompanyName()).rate(sip.getRate()).currentBalance(sip.getCurrentBalance()).freeBalance(sip.getFreeBalance()).amount(sip.getAmount()).build());
+				sipRepository.delete(sip);
+			}
+		}
+		
 			return "All Mutual Funds and SIP details updated and saved";
 		
 	}
@@ -290,6 +300,11 @@ public class FetchMfStocksServiceImpl implements FetchMfStocksService {
 	
 
 	public String saveStocks(){
+		sipDeatils.entrySet().forEach(entry -> {
+			if(stocksRepository.existsById(entry.getKey()) && !stocksFromPdf.keySet().contains(entry.getKey())){
+				stocksRepository.delete(stocksRepository.findById(entry.getKey()).get());
+			}
+		});
 		
 		holdingsCsvStocksData.forEach((key,value) ->{
 				if (stocksFromPdf.containsKey(value.get(0))){

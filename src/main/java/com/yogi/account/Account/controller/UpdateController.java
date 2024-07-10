@@ -30,6 +30,7 @@ public class UpdateController {
 		System.out.println("in stocks");
 		try {
 			fetchMfStocksService.readstocksCsvFile((fileNameMap.get("Upload All Holdings Csv File")));
+			fetchMfStocksService.fetchStocksAndMfTransactionStatement(fileNameMap.get("Upload All Holding Pdf File"));
 			fetchMfStocksService.fetchStocksAndMfMetaData(fileNameMap.get("Upload All Holding Pdf File"));
 			return fetchMfStocksService.saveStocks();
 		} catch (Exception e) {

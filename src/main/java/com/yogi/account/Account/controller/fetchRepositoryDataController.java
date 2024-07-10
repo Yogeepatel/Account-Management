@@ -32,7 +32,7 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/elss/{pageNumber}")
 	public Page<ELSS> getElssData (@PathVariable int pageNumber)   {
-		Pageable pageable = PageRequest.of(pageNumber,2);
+		Pageable pageable = PageRequest.of(pageNumber,10);
 		return elssRepository.findAll(pageable);
 	}
 	
@@ -45,7 +45,7 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/sip/{pageNumber}")
 	public Page<Sip> getSipData (@PathVariable int pageNumber)   {
-		Pageable pageable = PageRequest.of(pageNumber,1);
+		Pageable pageable = PageRequest.of(pageNumber,10);
 		return sipRepository.findAll(pageable);
 	}
 	
@@ -57,7 +57,7 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/fd/{pageNumber}")
 	public Page<FDs> getFdData (@PathVariable int pageNumber)   {
-		Pageable pageable = PageRequest.of(pageNumber,1);
+		Pageable pageable = PageRequest.of(pageNumber,10);
 		return fdRepository.findAll(pageable);
 	}
 	
@@ -79,7 +79,7 @@ public class fetchRepositoryDataController {
 	
 	@GetMapping("/yearExpenditure/{page}")
 	public Page<YearlyExpenditure> yearExpendituredetails (@PathVariable int page)   {
-		Pageable pageable = PageRequest.of(page,1);
+		Pageable pageable = PageRequest.of(page,10);
 		return yearlyExpenditureRepository.findAll(pageable);
 	}
 	
