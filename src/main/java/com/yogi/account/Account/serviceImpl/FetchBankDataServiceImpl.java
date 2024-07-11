@@ -129,8 +129,13 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         try {
             document = Loader.loadPDF(ResourceUtils.getFile("src/main/resources/UploadedFiles/"+filename), environment.getProperty(password));
             firstPageTableDataUbi = tabula.pdfTableReader(document, 1);
-            lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
-            textLastPageUbi = pdfBox.read(document, document.getNumberOfPages() - 1, true);
+            lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages());
+            textLastPageUbi = pdfBox.read(document, document.getNumberOfPages(), true);
+            System.out.println(lastPageTableDataUbi);
+            if(lastPageTableDataUbi.size()==0) {
+                lastPageTableDataUbi = tabula.pdfTableReader(document, document.getNumberOfPages() - 1);
+                textLastPageUbi = pdfBox.read(document, document.getNumberOfPages()-1, true);
+            }
         }catch (InvalidPasswordException e) {
             e.printStackTrace();
             throw new RuntimeException("wrong File Uploaded for"+ "UBI Bank.");
@@ -379,6 +384,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     
 
     public String collectFdDataofUBI()  {
+        System.out.println(lastPageTableDataUbi);
         boolean newfds = false;
         Integer id;
         List<FDs> exisingfds = fdRepository.findAll();
@@ -469,6 +475,7 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
     
 
     public String expenditureDataofUBI(String monthSelected) {
+        System.out.println(lastPageTableDataUbi.size()+ "ubi" + lastPageTableDataUbi);
         if (!bankAccountExpenditureRepositiory.existByIdAndMonth(AccountConstants.UBI,monthSelected).isEmpty()) {
             return "UBI expenditure details already Saved";
         }
@@ -531,26 +538,31 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
         Map<String, Integer> expenditureFieldsValues = expenditureFields.stream().collect(Collectors.toMap(key -> key,value -> 0));
         tabularIciciStatementdata.remove(0);
         tabularIciciStatementdata.forEach(data -> {
+            System.out.println(data);
                 if (data.get(3).contains("DR") && data.get(1).toLowerCase().contains("mf")) {
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(5)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(5),updatedValue);
+                    System.out.println(expenditureFields.get(5));
                 }
                 
                 else if (data.get(3).contains("DR") && (data.get(1).toLowerCase().contains("father") || data.get(1).toLowerCase().contains("papa") || data.get(1).toLowerCase().contains("9425330440"))){
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(1)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(1),updatedValue);
+                    System.out.println(expenditureFields.get(1));
                 }
                 else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("mother") || data.get(1).toLowerCase().contains("mom") || data.get(1).toLowerCase().contains("mummy"))){
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(2)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(2),updatedValue);
+                    System.out.println(expenditureFields.get(2));
                 }
                 else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("brother") || data.get(1).toLowerCase().contains("sushant") || data.get(1).toLowerCase().contains("9424599340"))){
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(3)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(3),updatedValue);
+                    System.out.println(expenditureFields.get(3));
                 }
-                else if ((data.get(1).toLowerCase().contains("9424333440@ibl") && data.get(1).toLowerCase().contains("union bank of i")) || data.get(1).toLowerCase().contains("cred") ){
+                else if ((data.get(1).toLowerCase().contains("9424333440@ibl") || data.get(1).toLowerCase().contains("union bank of i")) || data.get(1).toLowerCase().contains("cred") ){
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(0));
-                    
+                    System.out.println(expenditureFields.get(0));
                     if (data.get(3).contains("DR")) {
                          updatedValue = expenditureFieldsValues.get(expenditureFields.get(0)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     }else if(data.get(3).contains("CR")) {
@@ -559,9 +571,9 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                     }
                     expenditureFieldsValues.put(expenditureFields.get(0),updatedValue);
                 }
-                else if ((
-                        data.get(1).toLowerCase().contains("security money") || data.get(1).toLowerCase().contains("self") || data.get(1).toLowerCase().contains("bank account xx")) && data.get(1).toLowerCase().contains("state bank of i")) {
+                else if ((data.get(1).toLowerCase().contains("money")||data.get(1).toLowerCase().contains("security") || data.get(1).toLowerCase().contains("self") || data.get(1).toLowerCase().contains("bank account xx")) && data.get(1).toLowerCase().contains("state bank of i")) {
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(7));
+                    System.out.println(expenditureFields.get(7));
                     if (data.get(3).contains("DR")) {
                      updatedValue = expenditureFieldsValues.get(expenditureFields.get(7)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     }else if(data.get(3).contains("CR")) {
@@ -573,13 +585,16 @@ public class FetchBankDataServiceImpl implements FetchBankDataService {
                 else if (data.get(3).contains("DR") &&(data.get(1).toLowerCase().contains("zerodha") && data.get(1).toLowerCase().contains("broking") )){
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(6)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(6),updatedValue);
+                    System.out.println(expenditureFields.get(7));
                 }
                 else if(data.get(3).contains("DR")){
+                    System.out.println("others");
                     int updatedValue = expenditureFieldsValues.get(expenditureFields.get(8)) + Integer.parseInt(data.get(2).split("\\.")[0]);
                     expenditureFieldsValues.put(expenditureFields.get(8),updatedValue);
                 }
             });
             expenditureFieldsValues.put(expenditureFields.get(4), fdRepository.findAll().stream().filter(fd -> LocalDate.now().minusMonths(1).getMonthValue() ==  Integer.parseInt(fd.getAccountOpenDate().split("-")[1])).map(fd -> (int)Double.parseDouble(fd.getAmount().replace(",",""))).reduce(0,Integer::sum));
+        System.out.println(expenditureFields);
             return expenditureFieldsValues;
         
         }
